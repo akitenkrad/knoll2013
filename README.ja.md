@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/assets/hero.svg" width="100%"></p>
+
 [English](README.md) | **日本語**
 
 # Knoll & van Dick (2013) — 従業員サイレンスの 4 形態

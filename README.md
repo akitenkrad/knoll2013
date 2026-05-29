@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/assets/hero.svg" width="100%"></p>
+
 **English** | [日本語](README.ja.md)
 
 # Knoll & van Dick (2013) — Four Forms of Employee Silence
