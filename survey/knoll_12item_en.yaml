@@ -1,0 +1,124 @@
+# Knoll & van Dick (2013) 12-item silence scale — English source items
+#
+# IMPORTANT: This file is a STUB. The actual 12 items in Knoll Study 1 / 2 are
+# published in Knoll & van Dick (2013, JBE, Table 1). Reproduce them here
+# under fair-use / Knoll author permission BEFORE actual fielding. The texts
+# below are placeholder labels matching the item codes used by the analysis
+# scripts (AS1..OS3); they are NOT the published Knoll items.
+#
+# Item stem (shared by all 12 items):
+#   "Sometimes I remain silent at work …"
+#
+# Likert response scale: 1 = does apply to me not at all
+#                        7 = does apply to me entirely
+
+stem: "Sometimes I remain silent at work …"
+likert:
+  min: 1
+  max: 7
+  anchor_low: "does apply to me not at all"
+  anchor_high: "does apply to me entirely"
+
+items:
+  # Acquiescent silence (AS) — resigned withdrawal
+  - code: AS1
+    knoll_item: 10
+    subscale: AS
+    text: "[PLACEHOLDER — fill from Knoll 2013 Table 1 item 10 before fielding]"
+  - code: AS2
+    knoll_item: 11
+    subscale: AS
+    text: "[PLACEHOLDER — fill from Knoll 2013 Table 1 item 11 before fielding]"
+  - code: AS3
+    knoll_item: 13
+    subscale: AS
+    text: "[PLACEHOLDER — fill from Knoll 2013 Table 1 item 13 before fielding]"
+  # Quiescent silence (QS) — fear-based
+  - code: QS1
+    knoll_item: 4
+    subscale: QS
+    text: "[PLACEHOLDER — fill from Knoll 2013 Table 1 item 4 before fielding]"
+  - code: QS2
+    knoll_item: 5
+    subscale: QS
+    text: "[PLACEHOLDER — fill from Knoll 2013 Table 1 item 5 before fielding]"
+  - code: QS3
+    knoll_item: 19
+    subscale: QS
+    text: "[PLACEHOLDER — fill from Knoll 2013 Table 1 item 19 before fielding]"
+  # Prosocial silence (PS) — protective of others
+  - code: PS1
+    knoll_item: 6
+    subscale: PS
+    text: "[PLACEHOLDER — fill from Knoll 2013 Table 1 item 6 before fielding]"
+  - code: PS2
+    knoll_item: 7
+    subscale: PS
+    text: "[PLACEHOLDER — fill from Knoll 2013 Table 1 item 7 before fielding]"
+  - code: PS3
+    knoll_item: 16
+    subscale: PS
+    text: "[PLACEHOLDER — fill from Knoll 2013 Table 1 item 16 before fielding]"
+  # Opportunistic silence (OS) — self-interested strategic
+  - code: OS1
+    knoll_item: 15
+    subscale: OS
+    text: "[PLACEHOLDER — fill from Knoll 2013 Table 1 item 15 before fielding]"
+  - code: OS2
+    knoll_item: 17
+    subscale: OS
+    text: "[PLACEHOLDER — fill from Knoll 2013 Table 1 item 17 before fielding]"
+  - code: OS3
+    knoll_item: 20
+    subscale: OS
+    text: "[PLACEHOLDER — fill from Knoll 2013 Table 1 item 20 before fielding]"
+
+# 6 correlate scales (Knoll Study 2)
+# Reproduce / source-cite each scale BEFORE actual fielding; the schema below
+# defines the variable names used by the analysis scripts.
+correlate_scales:
+  climate_of_silence:
+    source: "Morrison & Milliken (2000); 3 items (e.g., 'It is safe to address critical issues …' reverse-coded)"
+    likert: { min: 1, max: 7 }
+    items: [
+      "[PLACEHOLDER — climate-of-silence item 1]",
+      "[PLACEHOLDER — climate-of-silence item 2]",
+      "[PLACEHOLDER — climate-of-silence item 3]",
+    ]
+  job_satisfaction:
+    source: "Hackman & Oldham (1980); single item from the Job Diagnostic Survey"
+    likert: { min: 1, max: 7 }
+    items: [
+      "Generally speaking, I am very satisfied with my job.",
+    ]
+  org_identification:
+    source: "Edwards & Peccei (2007); 4 items"
+    likert: { min: 1, max: 7 }
+    items: [
+      "[PLACEHOLDER — org-identification item 1]",
+      "[PLACEHOLDER — org-identification item 2]",
+      "[PLACEHOLDER — org-identification item 3]",
+      "[PLACEHOLDER — org-identification item 4]",
+    ]
+  strain:
+    source: "Mohr et al. (2006) Irritation Scale; 8 items"
+    likert: { min: 1, max: 7 }
+    items: [
+      "[PLACEHOLDER — strain item 1]",
+      "[PLACEHOLDER — strain item 2..8]",
+    ]
+  wellbeing:
+    source: "Ryff (1989) Purpose in Life subscale; 7 items"
+    likert: { min: 1, max: 7 }
+    items: [
+      "[PLACEHOLDER — wellbeing item 1]",
+      "[PLACEHOLDER — wellbeing item 2..7]",
+    ]
+  turnover_intention:
+    source: "Mobley et al. (1979) or Cammann et al. (1979); 3 items"
+    likert: { min: 1, max: 7 }
+    items: [
+      "I often think of quitting my current job.",
+      "[PLACEHOLDER — turnover-intention item 2]",
+      "[PLACEHOLDER — turnover-intention item 3]",
+    ]

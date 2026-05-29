@@ -1,0 +1,70 @@
+# Knoll & van Dick (2013) 12 項目サイレンス尺度 — 日本語版（草稿）
+#
+# 重要: 本ファイルは雛形である．実際の翻訳は Brislin (1970) の
+# 二者独立順方向 → 逆翻訳 → 専門家委員会 で確定し，translation_log.md
+# に議事録を残すこと．本ファイル中の日本語訳は **暫定的な仮翻訳** に
+# すぎず，配信前に必ず確定版に差し替えること．
+
+stem: "私は仕事中，次のような理由で発言を控えることがある …"
+likert:
+  min: 1
+  max: 7
+  anchor_low: "全く当てはまらない"
+  anchor_high: "完全に当てはまる"
+
+items:
+  # Acquiescent silence (AS)
+  - code: AS1
+    knoll_item: 10
+    subscale: AS
+    text: "[草稿] どうせ私の話を聞いてもらえないから（Knoll 2013 Table 1 item 10 を Brislin 法で確定）"
+  - code: AS2
+    knoll_item: 11
+    subscale: AS
+    text: "[草稿] どうせ何も変わらないから（Knoll 2013 Table 1 item 11 を Brislin 法で確定）"
+  - code: AS3
+    knoll_item: 13
+    subscale: AS
+    text: "[草稿] 上司が提案や懸念に対して開かれていないから（Knoll 2013 Table 1 item 13 を Brislin 法で確定）"
+
+  # Quiescent silence (QS)
+  - code: QS1
+    knoll_item: 4
+    subscale: QS
+    text: "[草稿] 否定的な結果を恐れて（Knoll 2013 Table 1 item 4 を Brislin 法で確定）"
+  - code: QS2
+    knoll_item: 5
+    subscale: QS
+    text: "[草稿] 同僚や上司に対して自分を脆弱にしないために（Knoll 2013 Table 1 item 5 を Brislin 法で確定）"
+  - code: QS3
+    knoll_item: 19
+    subscale: QS
+    text: "[草稿] 発言することの不利益を恐れて（Knoll 2013 Table 1 item 19 を Brislin 法で確定）"
+
+  # Prosocial silence (PS)
+  - code: PS1
+    knoll_item: 6
+    subscale: PS
+    text: "[草稿] 他者を恥ずかしい思いにさせたくないから（Knoll 2013 Table 1 item 6 を Brislin 法で確定）"
+  - code: PS2
+    knoll_item: 7
+    subscale: PS
+    text: "[草稿] 同僚や上司の感情を傷つけたくないから（Knoll 2013 Table 1 item 7 を Brislin 法で確定）"
+  - code: PS3
+    knoll_item: 16
+    subscale: PS
+    text: "[草稿] 他者を厄介事に巻き込みたくないから（Knoll 2013 Table 1 item 16 を Brislin 法で確定）"
+
+  # Opportunistic silence (OS)
+  - code: OS1
+    knoll_item: 15
+    subscale: OS
+    text: "[草稿] 不要な追加業務を抱えることになるから（Knoll 2013 Table 1 item 15 を Brislin 法で確定）"
+  - code: OS2
+    knoll_item: 17
+    subscale: OS
+    text: "[草稿] 自分のアイデアが他者に利用される懸念から（Knoll 2013 Table 1 item 17 を Brislin 法で確定）"
+  - code: OS3
+    knoll_item: 20
+    subscale: OS
+    text: "[草稿] 知識面での自分の優位を譲り渡さないために（Knoll 2013 Table 1 item 20 を Brislin 法で確定）"
