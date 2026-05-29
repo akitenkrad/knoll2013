@@ -4,7 +4,7 @@
 
 ## How this scaffold maps to Knoll & van Dick (2013) Study 1 / 2 numbers
 
-The full reproduction target table lives in the Obsidian design note (§5 of `Do I hear the whistle…`); this is a summary of what the current scaffold *can* and *cannot* reproduce.
+This is a summary of what the current scaffold *can* and *cannot* reproduce.
 
 | # | Knoll Study | Indicator | Paper value | This scaffold reproduces? | Mechanism |
 |---|-------------|-----------|-------------|---------------------------|-----------|

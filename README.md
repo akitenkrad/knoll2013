@@ -9,7 +9,7 @@ A two-track replication of **Knoll & van Dick (2013), "Do I Hear the Whistle…?
 - **Track A — psychometric replication** (Python `knoll-tools`): EFA / CFA / α / nomological-r-matrix analyses of an independent sample.
 - **Track B — generative ABM** (Rust `knoll` on the [socsim](https://github.com/akitenkrad/rs-social-simulation-tools) library): a 4-motive silence simulation on a Watts–Strogatz team network. A **rule** decision mode (multinomial-logistic ablation) and an **LLM** decision mode (`socsim-llm`, Ollama-first → OpenAI fallback) are mutually exclusive via `--decision-mode {rule|llm}`.
 
-The Phase Status table below records what is implemented in this scaffold vs deferred to subsequent phases. The full design lives in the Obsidian note `研究/98_論文レポート/80-再現実装/Do I hear the whistle…- A first attempt to measure four forms of employee silence and their correlates.md`.
+The Phase Status table below records what is implemented in this scaffold vs deferred to subsequent phases.
 
 ## Phase Status
 

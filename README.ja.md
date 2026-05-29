@@ -9,7 +9,7 @@
 - **Track A — 心理測定的再現** (Python `knoll-tools`): 独立サンプルに対する EFA / CFA / α / ノモロジカル r 行列分析．
 - **Track B — 生成的 ABM** (Rust `knoll`，[socsim](https://github.com/akitenkrad/rs-social-simulation-tools) ライブラリ上): Watts–Strogatz チームネットワーク上の 4 動機サイレンスシミュレーション．**rule** 決定モード（多項ロジスティック ablation）と **LLM** 決定モード（`socsim-llm`，Ollama 第一 → OpenAI フォールバック）は `--decision-mode {rule|llm}` で排他的に切替．
 
-下表 Phase Status は本 scaffold で実装済みのフェーズと後続フェーズへ繰延しているフェーズを記す．設計全体は Obsidian ノート `研究/98_論文レポート/80-再現実装/Do I hear the whistle…- A first attempt to measure four forms of employee silence and their correlates.md` を参照．
+下表 Phase Status は本 scaffold で実装済みのフェーズと後続フェーズへ繰延しているフェーズを記す．
 
 ## Phase Status
 
