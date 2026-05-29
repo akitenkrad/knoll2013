@@ -180,10 +180,7 @@ impl Default for Team {
 // --------------------------------------------------------------------------- //
 
 /// World state for the four-form silence model.
-///
-/// `SocialNetwork` does not implement `Debug`, so the world derives only
-/// `Clone + Serialize + Deserialize`.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SilenceWorld {
     pub clock: SimClock,
     /// Employees keyed by sorted [`AgentId`] (sorted order = determinism).
