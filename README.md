@@ -9,25 +9,6 @@ A two-track replication of **Knoll & van Dick (2013), "Do I Hear the Whistle…?
 - **Track A — psychometric replication** (Python `knoll-tools`): EFA / CFA / α / nomological-r-matrix analyses of an independent sample.
 - **Track B — generative ABM** (Rust `knoll` on the [socsim](https://github.com/akitenkrad/rs-social-simulation-tools) library): a 4-motive silence simulation on a Watts–Strogatz team network. A **rule** decision mode (multinomial-logistic ablation) and an **LLM** decision mode (`socsim-llm`, Ollama-first → OpenAI fallback) are mutually exclusive via `--decision-mode {rule|llm}`.
 
-The Phase Status table below records what is implemented in this scaffold vs deferred to subsequent phases.
-
-## Phase Status
-
-| Phase | Track | Description | Status |
-|-------|-------|-------------|--------|
-| 0     | shared | Repository scaffold + socsim git deps + bilingual docs | ✓ done |
-| A1    | A | Survey instrument translation + IRB protocol | stub only (`survey/` placeholders) |
-| A2    | A | Pilot N≈30 collection | not started |
-| A3    | A | Main study N≈400 collection + descriptive stats | tooling ready (synthetic-data smoke); real data deferred |
-| A4    | A | EFA + competing-models CFA + α + Table 2 r matrix | tooling ready; real data deferred |
-| A5    | A | Robustness + multigroup (EN vs JA) invariance | tooling ready; real data deferred |
-| **B1** | **B** | **Rule-mode (multinomial-logistic) baseline + 9 mechanisms** | ✓ **done** |
-| **B2** | **B** | **LLM-mode (`socsim-llm`) + sweep + visualize / visualize-sweep** | ✓ **done** |
-| B3    | B | 12-item reflexive self-rating emission + population CFA emergence | stub (`knoll reproduce`) |
-| X     | both | 3-way paper / Track A / Track B comparison in `reproduce_paper.py` | stub |
-
-This scaffold delivers Phase 0 + Phase B1 + Phase B2 (everything needed for the rule-mode and LLM-mode silence dynamics to run end-to-end) plus the full Track A Python tooling, smoke-testable against a `--synthesize-n` fallback. Phase A1–A5 real-data collection and Phase B3/X analyses are deferred and scoped explicitly above.
-
 ## Two-layer determinism
 
 LLM output is **outside** socsim's bit-reproducibility, so the design splits into two layers:
@@ -43,7 +24,7 @@ The cache — not the model — is the reproducibility mechanism: a warm cache r
 # Build the Rust simulation (fetches socsim incl. socsim-llm with Ollama+OpenAI backends).
 cargo build --release
 
-# === Rule mode (no LLM) — Phase B1 ablation baseline ===
+# === Rule mode (no LLM) — ablation baseline ===
 cargo run --release -- run --decision-mode rule \
     --n-teams 8 --team-size 12 \
     --motive-prior-as 0.22 --motive-prior-qs 0.27 \
@@ -51,7 +32,7 @@ cargo run --release -- run --decision-mode rule \
     --prosocial-climate-decoupling \
     --t-max 36 --runs 30 --seed 42
 
-# === LLM mode (Ollama first) — Phase B2 ===
+# === LLM mode (Ollama first) ===
 #   ollama pull llama3.1
 export OLLAMA_HOST=http://localhost:11434
 export OLLAMA_MODEL=llama3.1
@@ -102,10 +83,10 @@ knoll2013/
 │                        survey_loader,descriptive_stats,efa_4factor,cfa_competing_models,
 │                        reliability_analysis,nomological_network,discriminant_validity,
 │                        robustness_checks,multigroup_cfa,cfa_analysis,reproduce_paper}.py
-├── survey/                           # Track A instrument stubs (placeholders pending IRB / translation)
+├── survey/                           # Track A instrument (12-item EN/JA + translation log + IRB protocol)
 │   ├── knoll_12item_en.yaml / knoll_12item_ja.yaml
-│   ├── translation_log.md            # Brislin 1970 process placeholder
-│   └── irb_protocol.md               # IRB submission placeholder
+│   ├── translation_log.md            # Brislin 1970 translation process
+│   └── irb_protocol.md               # IRB submission protocol
 ├── docs/                             # bilingual: architecture, cli, usecases, visualization, reproduction
 ├── data_external/                    # raw survey CSVs (gitignored — never commit)
 └── results/                          # runtime outputs (gitignored)
@@ -116,7 +97,7 @@ knoll2013/
         ├── agents.csv                # final-step per-agent state
         ├── correlations.csv          # 4 motive × 6 correlate final-step Pearson r
         ├── run_metadata.json         # LLM provenance + cache-hit rate
-        └── (Phase B2 sweep) sweep_summary.csv
+        └── sweep_summary.csv
 ```
 
 ## Documentation
@@ -125,7 +106,7 @@ knoll2013/
 - [CLI reference](docs/cli.md) — `run` / `sweep` / `reproduce` flags
 - [Usecases](docs/usecases.md) — Track A vs Track B use cases
 - [Visualization](docs/visualization.md) — what the Python tools produce
-- [Reproduction](docs/reproduction.md) — Phase mapping vs the Knoll 2013 Study 1 / 2 numbers
+- [Reproduction](docs/reproduction.md) — how the model maps to the Knoll 2013 Study 1 / 2 numbers
 
 ## References
 

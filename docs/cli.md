@@ -65,13 +65,13 @@ Outputs (under `results/<timestamp>_sweep/`):
 
 ## `knoll reproduce`
 
-Phase B3 / Phase X stub (prints a description of what Phase B3 will do; see `cfa-analysis` and `reproduce-paper` in `knoll-tools` for the Python-side stubs).
+Emits reflexive 12-item self-ratings for population-CFA reproduction of the Knoll Study 1 measurement model; pairs with `cfa-analysis` and `reproduce-paper` in `knoll-tools` on the Python side.
 
 ## `knoll-tools` (Python)
 
 `knoll-tools <subcommand> [...flags]`. Subcommands:
 
-- **Track B (ABM)**: `visualize`, `visualize-sweep`, `show-experiment-settings`, `cfa-analysis` (stub), `reproduce-paper` (stub)
+- **Track B (ABM)**: `visualize`, `visualize-sweep`, `show-experiment-settings`, `cfa-analysis` (population CFA over emitted self-ratings), `reproduce-paper` (3-way paper / Track A / Track B comparison)
 - **Track A (psychometrics)**: `survey-loader`, `descriptive-stats`, `efa-4factor`, `cfa-competing-models`, `reliability-analysis`, `nomological-network`, `discriminant-validity`, `robustness-checks`, `multigroup-cfa`
 
 Run `knoll-tools <subcommand> --help` for per-subcommand flags.

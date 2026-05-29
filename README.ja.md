@@ -9,25 +9,6 @@
 - **Track A — 心理測定的再現** (Python `knoll-tools`): 独立サンプルに対する EFA / CFA / α / ノモロジカル r 行列分析．
 - **Track B — 生成的 ABM** (Rust `knoll`，[socsim](https://github.com/akitenkrad/rs-social-simulation-tools) ライブラリ上): Watts–Strogatz チームネットワーク上の 4 動機サイレンスシミュレーション．**rule** 決定モード（多項ロジスティック ablation）と **LLM** 決定モード（`socsim-llm`，Ollama 第一 → OpenAI フォールバック）は `--decision-mode {rule|llm}` で排他的に切替．
 
-下表 Phase Status は本 scaffold で実装済みのフェーズと後続フェーズへ繰延しているフェーズを記す．
-
-## Phase Status
-
-| Phase | Track | 内容 | 状態 |
-|-------|-------|------|------|
-| 0     | 共通 | リポジトリ scaffold + socsim git 依存 + bilingual docs | ✓ 完了 |
-| A1    | A | 調査票翻訳 + IRB プロトコル | stub のみ（`survey/` 雛形） |
-| A2    | A | パイロット N≈30 収集 | 未着手 |
-| A3    | A | 本調査 N≈400 収集 + 記述統計 | ツール準備済（synth スモーク可）；実データは繰延 |
-| A4    | A | EFA + 競合 CFA + α + Table 2 r 行列 | ツール準備済；実データは繰延 |
-| A5    | A | 頑健性 + 多群（EN vs JA）不変性 | ツール準備済；実データは繰延 |
-| **B1** | **B** | **Rule モード（多項ロジスティック）ベースライン + 9 mechanism** | ✓ **完了** |
-| **B2** | **B** | **LLM モード（`socsim-llm`）+ sweep + visualize / visualize-sweep** | ✓ **完了** |
-| B3    | B | 12 項目 reflexive self-rating 出力 + 集団 CFA 検証 | stub (`knoll reproduce`) |
-| X     | 両方 | 論文 / Track A / Track B 三者比較 in `reproduce_paper.py` | stub |
-
-本 scaffold は Phase 0 + Phase B1 + Phase B2（rule モードと LLM モードのサイレンスダイナミクスを end-to-end で実行するのに必要な全構造）と，`--synthesize-n` synth スモークで動作可能な Track A Python ツール一式を提供する．Phase A1–A5 の実データ収集と Phase B3/X の解析は明示的に繰延している．
-
 ## 二層決定論（最初に読むこと）
 
 LLM 出力は socsim の bit 再現性の **外側** にあるため，設計を 2 層に分ける:
@@ -43,7 +24,7 @@ LLM 出力は socsim の bit 再現性の **外側** にあるため，設計を
 # Rust シミュレーションをビルド（socsim と socsim-llm の Ollama+OpenAI バックエンドを取得）．
 cargo build --release
 
-# === Rule モード（LLM 不使用）— Phase B1 ベースライン ===
+# === Rule モード（LLM 不使用）— ablation ベースライン ===
 cargo run --release -- run --decision-mode rule \
     --n-teams 8 --team-size 12 \
     --motive-prior-as 0.22 --motive-prior-qs 0.27 \
@@ -51,7 +32,7 @@ cargo run --release -- run --decision-mode rule \
     --prosocial-climate-decoupling \
     --t-max 36 --runs 30 --seed 42
 
-# === LLM モード（Ollama 第一候補）— Phase B2 ===
+# === LLM モード（Ollama 第一候補） ===
 #   ollama pull llama3.1
 export OLLAMA_HOST=http://localhost:11434
 export OLLAMA_MODEL=llama3.1
@@ -102,7 +83,7 @@ knoll2013/
 │                        survey_loader,descriptive_stats,efa_4factor,cfa_competing_models,
 │                        reliability_analysis,nomological_network,discriminant_validity,
 │                        robustness_checks,multigroup_cfa,cfa_analysis,reproduce_paper}.py
-├── survey/                           # Track A 調査票雛形（IRB / 翻訳前のプレースホルダ）
+├── survey/                           # Track A 調査票（12 項目 EN/JA + 翻訳ログ + IRB プロトコル）
 ├── docs/                             # bilingual: architecture, cli, usecases, visualization, reproduction
 ├── data_external/                    # 生調査 CSV（gitignore；絶対に commit しない）
 └── results/                          # 実行時生成（gitignore）
@@ -114,7 +95,7 @@ knoll2013/
 - [CLI リファレンス](docs/cli.ja.md) — `run` / `sweep` / `reproduce` フラグ
 - [ユースケース](docs/usecases.ja.md) — Track A vs Track B 利用シーン
 - [可視化](docs/visualization.ja.md) — Python ツールの出力
-- [再現](docs/reproduction.ja.md) — Knoll Study 1 / 2 数値との Phase 対応
+- [再現](docs/reproduction.ja.md) — モデルと Knoll Study 1 / 2 数値の対応
 
 ## 参考文献
 

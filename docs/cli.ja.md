@@ -65,13 +65,13 @@
 
 ## `knoll reproduce`
 
-Phase B3 / Phase X 用 stub（Phase B3 の予定内容を表示．Python 側の stub は `cfa-analysis` と `reproduce-paper` を参照）．
+Knoll Study 1 測定モデルの集団 CFA 再現用に reflexive 12 項目 self-rating を出力する．Python 側の `cfa-analysis`・`reproduce-paper` と組み合わせる．
 
 ## `knoll-tools`（Python）
 
 `knoll-tools <subcommand> [...flags]`．サブコマンド:
 
-- **Track B（ABM）**: `visualize`, `visualize-sweep`, `show-experiment-settings`, `cfa-analysis`（stub）, `reproduce-paper`（stub）
+- **Track B（ABM）**: `visualize`, `visualize-sweep`, `show-experiment-settings`, `cfa-analysis`（出力された self-rating の集団 CFA）, `reproduce-paper`（論文 / Track A / Track B 三者比較）
 - **Track A（心理測定）**: `survey-loader`, `descriptive-stats`, `efa-4factor`, `cfa-competing-models`, `reliability-analysis`, `nomological-network`, `discriminant-validity`, `robustness-checks`, `multigroup-cfa`
 
 サブコマンドごとのフラグは `knoll-tools <subcommand> --help` で確認．

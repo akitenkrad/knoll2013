@@ -24,8 +24,8 @@ Per-`Employee`: `level, tenure, team, private_concern, expression, silence_motiv
 | 1  | `IssueSalience`          | Environment  | Update σ(t) with mean-reversion + optional shock at `shock_t`. |
 | 2  | `RetaliationEvent`       | Environment  | With probability `p_retaliate` per agent, mark them as retaliated this step. |
 | 3  | `FearAppraisal`          | Decision     | `f_i ← clamp(f_i + α·retaliated − γ·max(u_team, 0), 0, 1)`. |
-| 4a | `VoiceDecisionRule` ★   | Decision     | **Phase B1 ablation.** Multinomial-logistic over 8 features → Bernoulli VOICE + softmax motive. |
-| 4b | `VoiceDecisionLlm` ★    | Decision     | **Phase B2.** `socsim-llm` driven; persona + context → JSON `{decision, motive, rationale}`. |
+| 4a | `VoiceDecisionRule` ★   | Decision     | Rule-mode ablation: multinomial-logistic over 8 features → Bernoulli VOICE + softmax motive. |
+| 4b | `VoiceDecisionLlm` ★    | Decision     | LLM-mode: `socsim-llm` driven; persona + context → JSON `{decision, motive, rationale}`. |
 | 5  | `SilenceSpiral`          | Interaction  | `ρ_i ← neighbour silence ratio` (Noelle-Neumann 1974). |
 | 6  | `PrefalseCascade`        | Interaction  | Silent agent flips to VOICE if neighbour-VOICE ratio > θ_i (Kuran 1995). |
 | 7  | `OrgPerformance`         | Reward       | Per-team `K_k(t)` ← decay + VOICE_share_k − OS_share_k. |

@@ -24,8 +24,8 @@
 | 1  | `IssueSalience`          | Environment  | σ(t) を平均回帰更新 + `shock_t` で任意ショック印加． |
 | 2  | `RetaliationEvent`       | Environment  | 確率 `p_retaliate` で各 agent を当該ステップの報復対象に印付け． |
 | 3  | `FearAppraisal`          | Decision     | `f_i ← clamp(f_i + α·報復 − γ·max(u_team, 0), 0, 1)`． |
-| 4a | `VoiceDecisionRule` ★   | Decision     | **Phase B1 ablation**．8 特徴量の多項ロジスティック → Bernoulli VOICE + softmax 動機． |
-| 4b | `VoiceDecisionLlm` ★    | Decision     | **Phase B2**．`socsim-llm` 駆動；persona + 文脈 → JSON `{decision, motive, rationale}`． |
+| 4a | `VoiceDecisionRule` ★   | Decision     | rule モード ablation：8 特徴量の多項ロジスティック → Bernoulli VOICE + softmax 動機． |
+| 4b | `VoiceDecisionLlm` ★    | Decision     | LLM モード：`socsim-llm` 駆動；persona + 文脈 → JSON `{decision, motive, rationale}`． |
 | 5  | `SilenceSpiral`          | Interaction  | `ρ_i ← 近傍サイレンス比率`（Noelle-Neumann 1974）． |
 | 6  | `PrefalseCascade`        | Interaction  | サイレンス agent は近傍 VOICE 比率 > θ_i なら VOICE へ反転（Kuran 1995）． |
 | 7  | `OrgPerformance`         | Reward       | チーム `K_k(t)` ← 減衰 + VOICE 比率 − OS 比率． |
