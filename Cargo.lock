@@ -453,7 +453,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "knoll-silence-simulation"
+name = "knoll-simulation"
 version = "0.1.0"
 dependencies = [
  "chrono",
