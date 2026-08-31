@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 """visualize_sweep.py — sweep visualization for the Knoll 2013 silence model.
 
-Reads `results/<timestamp>_sweep/sweep_summary.csv` and produces:
+sweep 親 run とその子 run から «1 行 1 (セル × seed)» の表を組み直して出力する:
   - sweep_corr_ps_climate.png    : β_ρ^PS × decoupling response curve for corr(PS, climate)
   - sweep_motive_heatmap.png     : β_ψ × β_f heatmap of motive_mix_AS (averaged over seeds)
   - sweep_decoupling_effect.png  : violin / box of corr(PS, climate) under decoupling on/off
 
+`--results-dir` を省略すると
+`runvault path --experiment knoll --latest --subcommand sweep`
+が返す sweep 親を対象にする (`runvault` が PATH にある必要がある)．表そのものは
+ディスクに無いので `sweep_summary` が子 run から組み直す．
+
 Usage:
     uv run knoll-tools visualize-sweep
-    uv run knoll-tools visualize-sweep --results-dir results/<ts>_sweep
+    uv run knoll-tools visualize-sweep --results-dir "$(runvault path --experiment knoll --latest --subcommand sweep)"
 """
 
 from __future__ import annotations
@@ -19,6 +24,12 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from runvault.read import figures_dir, runvault_path
+
+from knoll_tools.sweep_summary import sweep_summary_table
+
+# runvault の experiment 名 (Rust 側 record::EXPERIMENT と揃える)．
+EXPERIMENT = "knoll"
 
 COLOR_BG = "#FAFAF8"
 
@@ -121,17 +132,24 @@ def plot_decoupling_box(df: pd.DataFrame, output_dir: str) -> None:
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="knoll-tools visualize-sweep")
-    parser.add_argument("--results-dir", default="results/latest")
-    parser.add_argument("--output-dir", default=None)
+    parser.add_argument(
+        "--results-dir",
+        "--results_dir",
+        default=None,
+        help="sweep 親の run ディレクトリ (省略時は runvault path が返す直近の sweep)",
+    )
+    parser.add_argument("--results-root", "--results_root", default="results")
+    parser.add_argument("--output-dir", "--output_dir", default=None)
     args = parser.parse_args(argv)
-    results_dir = args.results_dir
-    output_dir = args.output_dir or results_dir
+
+    results_dir = args.results_dir or runvault_path(
+        EXPERIMENT, results_root=args.results_root, subcommand="sweep"
+    )
+    output_dir = args.output_dir or figures_dir(results_dir)
     os.makedirs(output_dir, exist_ok=True)
-    sweep_path = os.path.join(results_dir, "sweep_summary.csv")
-    if not os.path.exists(sweep_path):
-        print(f"[visualize-sweep] no sweep summary at {sweep_path}; nothing to plot")
-        return
-    df = pd.read_csv(sweep_path)
+    print(f"[visualize-sweep] sweep: {results_dir}")
+
+    df = sweep_summary_table(results_dir)
     plot_ps_response(df, output_dir)
     plot_motive_heatmap(df, output_dir)
     plot_decoupling_box(df, output_dir)

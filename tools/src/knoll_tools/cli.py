@@ -3,7 +3,7 @@
 Track B (ABM):
     knoll-tools visualize                 # motive_mix time-series + climate trajectory
     knoll-tools visualize-sweep           # β heatmaps + PS-climate-decoupling response
-    knoll-tools show-experiment-settings  # print config / sweep_config / run_metadata
+    knoll-tools show-experiment-settings  # print a run directory's config + LLM provenance
     knoll-tools cfa-analysis              # Phase B3 stub
     knoll-tools reproduce-paper           # Phase X stub
 
@@ -43,7 +43,7 @@ main = build_dispatcher(
             "knoll_tools.visualize_sweep:main",
         ),
         "show-experiment-settings": (
-            "print a results directory's settings (config / sweep_config / run_metadata)",
+            "print a run directory's settings (config + LLM provenance)",
             "knoll_tools.show_experiment_settings:main",
         ),
         "cfa-analysis": (

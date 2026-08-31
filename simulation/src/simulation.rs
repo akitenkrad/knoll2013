@@ -8,6 +8,9 @@
 //!   [`VoiceDecisionLlm`] mechanism via `socsim-llm`'s cached Ollama → OpenAI
 //!   fallback client. `temperature = 0` + `(agent_id, t)`-derived seed +
 //!   prompt→response cache pseudo-determinises generation.
+//!
+//! 出力の置き場と同一性は runvault が持つ (`crate::record`)．ここは値を作るだけで，
+//! ファイルを書かない．
 
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -21,7 +24,7 @@ use socsim_llm::{LlmClient, MetadataCollector};
 use socsim_net::SocialNetwork;
 
 use crate::config::{Config, DecisionMode, NetworkKind};
-use crate::llm::{build_live_client, SilenceClient};
+use crate::llm::SilenceClient;
 use crate::mechanisms::{
     seed_motives, ClimateSilence, FearAppraisal, IssueSalience, OrgPerformance, PrefalseCascade,
     PsafetyUpdate, RetaliationEvent, SeededMotives, SharedClient, SharedMetadata, SilenceSpiral,
@@ -44,7 +47,7 @@ pub const RNG_LLM_ROOT: u64 = 2;
 // Result containers + per-step row
 // --------------------------------------------------------------------------- //
 
-/// Per-step metrics row written to `metrics.csv`.
+/// Per-step metrics row. `crate::record` が runvault の `metrics.csv` へ落とす．
 #[derive(Debug, Clone, Serialize)]
 pub struct MetricsRow {
     pub t: u64,
@@ -62,7 +65,7 @@ pub struct MetricsRow {
     pub kl_divergence_to_knoll: f64,
 }
 
-/// Per-agent end-of-run state row written to `agents.csv`.
+/// Per-agent end-of-run state row. `crate::record` が `events.jsonl` へ落とす．
 #[derive(Debug, Clone, Serialize)]
 pub struct AgentRow {
     pub t: u64,
@@ -71,7 +74,8 @@ pub struct AgentRow {
     pub level: u8,
     pub tenure: u32,
     pub expression: String,
-    pub motive: String,
+    /// 沈黙していない従業員に沈黙動機は無いので `None`．
+    pub motive: Option<String>,
     pub fear: f64,
     pub psafety: f64,
     pub ivt: f64,
@@ -81,7 +85,8 @@ pub struct AgentRow {
     pub private_concern: f64,
 }
 
-/// Per-(motive, correlate) correlation row written to `correlations.csv`.
+/// Per-(motive, correlate) correlation row. `crate::record` が run スコープの
+/// 指標として落とす．
 #[derive(Debug, Clone, Serialize)]
 pub struct CorrelationRow {
     pub motive: String,
@@ -158,21 +163,13 @@ pub fn init_world(cfg: &Config, rng: &mut SimRng) -> (SilenceWorld, SeededMotive
 // Run driver
 // --------------------------------------------------------------------------- //
 
-/// Build mechanisms + run one configuration. For `decision_mode = Llm`, build
-/// the production LLM client from the environment.
-pub fn run(cfg: &Config) -> std::result::Result<SimulationResult, String> {
-    if cfg.decision_mode.is_llm() {
-        let client =
-            build_live_client(&cfg.llm).map_err(|e| format!("LLM client build failed: {e}"))?;
-        run_with_client(cfg, Some(client))
-    } else {
-        run_with_client(cfg, None)
-    }
-}
-
-/// Run with an optional pre-built [`SilenceClient`] — production via
-/// [`build_live_client`], tests via [`crate::llm::wrap_client`] over a
-/// `ScriptedClient`.
+/// Build mechanisms + run one configuration with an optional pre-built
+/// [`SilenceClient`] — production via [`crate::llm::build_live_client`], tests via
+/// [`crate::llm::wrap_client`] over a `ScriptedClient`.
+///
+/// クライアントはここでは組まない．`run.json` の `llm` ブロックに書くモデル名と
+/// endpoint を知っているのはクライアントを組んだ側だけなので，組み立ては呼び出し側
+/// (`Run::start` の前) に置く．
 pub fn run_with_client(
     cfg: &Config,
     client: Option<SilenceClient>,
@@ -298,10 +295,7 @@ pub fn run_with_client(
             level: emp.level,
             tenure: emp.tenure,
             expression: emp.expression.label().to_string(),
-            motive: emp
-                .silence_motive
-                .map(|m| m.code().to_string())
-                .unwrap_or_else(|| "-".to_string()),
+            motive: emp.silence_motive.map(|m| m.code().to_string()),
             fear: emp.fear,
             psafety: emp.psych_safety,
             ivt: emp.ivt_strength,
@@ -384,71 +378,6 @@ fn build_correlation_rows(world: &SilenceWorld) -> Vec<CorrelationRow> {
         }
     }
     rows
-}
-
-// --------------------------------------------------------------------------- //
-// Output writers
-// --------------------------------------------------------------------------- //
-
-/// Create the output directory.
-pub fn ensure_output_dir(output_dir: &str) {
-    socsim_results::ensure_dir(output_dir).expect("failed to create output directory");
-}
-
-/// Write `metrics.csv` (one row per simulation step).
-pub fn save_metrics(result: &SimulationResult, output_dir: &str) {
-    let path = format!("{output_dir}/metrics.csv");
-    socsim_results::write_csv(&result.metrics_rows, &path).expect("failed to write metrics.csv");
-}
-
-/// Write `agents.csv` (one row per agent at the final step).
-pub fn save_agents(result: &SimulationResult, output_dir: &str) {
-    let path = format!("{output_dir}/agents.csv");
-    socsim_results::write_csv(&result.agent_rows, &path).expect("failed to write agents.csv");
-}
-
-/// Write `correlations.csv` (motive × correlate Pearson r at the final step).
-pub fn save_correlations(result: &SimulationResult, output_dir: &str) {
-    let path = format!("{output_dir}/correlations.csv");
-    socsim_results::write_csv(&result.correlation_rows, &path)
-        .expect("failed to write correlations.csv");
-}
-
-/// `run_metadata.json` (LLM model / endpoint / temperature / seed / cache stats).
-#[derive(Serialize)]
-pub struct RunMetadataJson {
-    pub decision_mode: String,
-    pub llm_model: String,
-    pub llm_endpoint: String,
-    pub llm_temperature: f32,
-    pub llm_seed: u64,
-    pub total_calls: usize,
-    pub cache_hits: usize,
-    pub cache_hit_rate: f64,
-    pub final_round: u64,
-    pub determinism_note: &'static str,
-}
-
-/// Save `run_metadata.json`.
-pub fn save_run_metadata(result: &SimulationResult, cfg: &Config, output_dir: &str) {
-    let meta = RunMetadataJson {
-        decision_mode: cfg.decision_mode.label().to_string(),
-        llm_model: result.llm_model.clone(),
-        llm_endpoint: result.llm_endpoint.clone(),
-        llm_temperature: cfg.llm.temperature,
-        llm_seed: cfg.llm.seed,
-        total_calls: result.metadata.total(),
-        cache_hits: result.metadata.cache_hits(),
-        cache_hit_rate: result.metadata.cache_hit_rate(),
-        final_round: result.final_round,
-        determinism_note: "LLM output is outside socsim bit-reproducibility; the prompt->response \
-                           cache (with temperature=0 and (agent_id, t)-derived seed) is the \
-                           reproducibility mechanism. The socsim core (employee init, network \
-                           generation, scheduling, the 8 non-LLM mechanisms) is deterministic \
-                           given the seed. The rule decision mode makes zero LLM calls.",
-    };
-    let path = format!("{output_dir}/run_metadata.json");
-    socsim_results::write_json(&meta, &path).expect("failed to write run_metadata.json");
 }
 
 #[cfg(test)]

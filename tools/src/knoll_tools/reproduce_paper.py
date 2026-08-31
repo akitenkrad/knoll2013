@@ -4,8 +4,7 @@
 Stub: Phase X will take a Phase A3+ Track A reproduction sample's results
 (α profile, Table 2 r matrix, CFA fit) plus a Track B `reproduce` run's
 results, and produce a 3-column "paper / Track A / Track B" comparison table
-written to `results/<ts>/three_way_comparison.csv` and visualised as a side-
-by-side bar chart.
+written outside the run directory and visualised as a side-by-side bar chart.
 """
 
 from __future__ import annotations
@@ -17,7 +16,11 @@ import sys
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="knoll-tools reproduce-paper")
     parser.add_argument("--track-a-dir", default=None, help="Track A results directory")
-    parser.add_argument("--track-b-dir", default="results/latest", help="Track B results directory")
+    # Track B の run ディレクトリは runvault が解決する
+    # (`runvault path --experiment knoll --latest --subcommand run --standalone`)．
+    parser.add_argument(
+        "--track-b-dir", default=None, help="Track B run directory (default: runvault path)"
+    )
     parser.parse_args(argv)
     print("`reproduce-paper` is a Phase X feature; not implemented in this scaffold.")
     print()

@@ -41,7 +41,7 @@ The two tracks address complementary research questions about Knoll & van Dick's
 - Test whether LLM personas reproduce the qualitative motive sign pattern even without explicit β constraints.
 - Compare LLM vs rule outputs at matched seeds to isolate the LLM layer's contribution.
 
-**Mode 3: sweep.** Cartesian sweep produces a `sweep_summary.csv` that `visualize-sweep` turns into response curves and heatmaps (PS-climate correlation vs `β_ρ^{PS}`, motive-mix heatmaps across β_ψ × β_f, boxplots of PS-climate r under decoupling on/off).
+**Mode 3: sweep.** The Cartesian sweep produces a sweep parent plus one child run per (cell × seed); `visualize-sweep` rebuilds the table from the children and turns it into response curves and heatmaps (PS-climate correlation vs `β_ρ^{PS}`, motive-mix heatmaps across β_ψ × β_f, boxplots of PS-climate r under decoupling on/off).
 
 ## 3-way integration
 

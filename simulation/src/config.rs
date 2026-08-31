@@ -234,9 +234,6 @@ pub struct Config {
 
     // ── LLM settings (used iff `decision_mode == Llm`) ─────────────────────
     pub llm: LlmSettings,
-
-    // ── output ─────────────────────────────────────────────────────────────
-    pub output_dir: String,
 }
 
 impl Default for Config {
@@ -259,7 +256,6 @@ impl Default for Config {
             runs: 1,
             seed: 42,
             llm: LlmSettings::default(),
-            output_dir: "results".to_string(),
         }
     }
 }
@@ -271,10 +267,12 @@ impl Config {
     }
 }
 
-/// JSON representation of a `run`'s `config.json`.
+/// 実験条件．runvault の `config.json` の `parameters` に入る．
+///
+/// 出力先はここには無い — run ディレクトリが出力先そのものだからである．どの
+/// サブコマンドの実行かも `run.json` が持つので条件には含めない．
 #[derive(Serialize)]
 pub struct RunConfigJson {
-    pub command: &'static str,
     pub n_teams: usize,
     pub team_size: usize,
     pub n_levels: u8,
@@ -295,14 +293,12 @@ pub struct RunConfigJson {
     pub llm_temperature: f32,
     pub llm_seed: u64,
     pub llm_cache_path: Option<String>,
-    pub output_dir: String,
 }
 
 impl Config {
-    /// Build the `config.json` representation.
+    /// Build the `parameters` representation.
     pub fn to_run_config_json(&self) -> RunConfigJson {
         RunConfigJson {
-            command: "run",
             n_teams: self.n_teams,
             team_size: self.team_size,
             n_levels: self.n_levels,
@@ -323,7 +319,6 @@ impl Config {
             llm_temperature: self.llm.temperature,
             llm_seed: self.llm.seed,
             llm_cache_path: self.llm.cache_path.clone(),
-            output_dir: self.output_dir.clone(),
         }
     }
 }

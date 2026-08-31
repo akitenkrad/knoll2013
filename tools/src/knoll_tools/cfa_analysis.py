@@ -18,7 +18,9 @@ import sys
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="knoll-tools cfa-analysis")
-    parser.add_argument("--results-dir", default="results/latest")
+    # run ディレクトリは runvault が解決する (`runvault path --experiment knoll …`)．
+    # `results/latest` はもう作られないので既定値を持たない．
+    parser.add_argument("--results-dir", "--results_dir", default=None)
     parser.parse_args(argv)
     print("`cfa-analysis` is a Phase B3 feature; it is intentionally not implemented")
     print("in this scaffold. Phase B3 will:")

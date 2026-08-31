@@ -66,7 +66,7 @@
 │         ├──→│                                                              │
 │         │   └─ llm:   VoiceDecisionLlm   （socsim-llm: Ollama→OpenAI）    │
 │         v                                                                  │
-│   metrics.csv | agents.csv | correlations.csv | run_metadata.json         │
+│   runvault run: run.json | config.json | metrics.csv | events.jsonl       │
 │         │                                                                  │
 │         v                                                                  │
 │   knoll-tools visualize / visualize-sweep / show-experiment-settings      │

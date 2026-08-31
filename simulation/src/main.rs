@@ -2,25 +2,29 @@
 //!
 //! `run`       : single configuration; `--decision-mode {rule|llm}` exclusive switch.
 //! `sweep`     : Cartesian product over `β_psafety × β_fear × β_rho_ps ×
-//!               prosocial_decoupling × seeds`. One row per cell in `sweep_summary.csv`.
+//!               prosocial_decoupling × seeds`. 親 run 1 本 + セルごとの子 run．
 //! `reproduce` : Phase B3 / Phase X stub — prints what Phase B3 will do.
+//!
+//! サブコマンド 1 回が runvault の run 1 本になる．出力の置き場と同一性 (run ディレ
+//! クトリ・`config.json`・`metrics.csv`・`events.jsonl`) は runvault が持つので，
+//! ここではタイムスタンプ付きディレクトリも `latest` symlink も作らない．
 
 use std::fs;
 use std::path::Path;
 
 use clap::{Parser, Subcommand};
+use runvault::{Lineage, Run, RunOptions};
 
 use knoll_silence::config::{
     parse_decision_mode, parse_network_kind, BetaGroup, Config, LlmSettings, MotivePrior,
     NetworkKind,
 };
-use knoll_silence::simulation::{
-    ensure_output_dir, run, save_agents, save_correlations, save_metrics, save_run_metadata,
-    SimulationResult,
-};
+use knoll_silence::llm::{build_live_client, SilenceClient};
+use knoll_silence::record::{self, DOMAIN, EXPERIMENT, REPO_ID};
+use knoll_silence::simulation::{run_with_client, SimulationResult};
 
 use socsim_core::derive_seed;
-use socsim_results::{refresh_latest_symlink, timestamp, write_csv, write_json};
+use socsim_llm::LlmClient;
 
 // --------------------------------------------------------------------------- //
 // CLI
@@ -47,7 +51,7 @@ enum Commands {
     /// Sweep β group and PS-decoupling across seeds; aggregate into `sweep_summary.csv`.
     Sweep(SweepArgs),
     /// Phase B3 / Phase X reproduction helper (currently a stub).
-    Reproduce(ReproduceArgs),
+    Reproduce,
 }
 
 #[derive(Parser, Debug)]
@@ -169,38 +173,23 @@ struct SweepArgs {
     output_dir: String,
 }
 
-#[derive(Parser, Debug)]
-struct ReproduceArgs {
-    /// Output base directory.
-    #[arg(long, default_value = "results")]
-    output_dir: String,
-}
-
 // --------------------------------------------------------------------------- //
-// Sweep CSV row
+// Sweep parameters
 // --------------------------------------------------------------------------- //
 
+/// 掃引の格子そのもの．sweep 親 run の `parameters` に入る．
 #[derive(serde::Serialize)]
-struct SweepRow {
+struct SweepConfigJson {
     decision_mode: String,
-    beta_psafety: f64,
-    beta_fear: f64,
-    beta_rho_ps: f64,
-    prosocial_climate_decoupling: bool,
-    run: usize,
+    n_teams: usize,
+    team_size: usize,
+    beta_psafety_values: Vec<f64>,
+    beta_fear_values: Vec<f64>,
+    beta_rho_ps_values: Vec<f64>,
+    sweep_decoupling: bool,
+    runs: usize,
+    t_max: u64,
     seed: u64,
-    final_round: u64,
-    silence_rate: f64,
-    motive_mix_as: f64,
-    motive_mix_qs: f64,
-    motive_mix_ps: f64,
-    motive_mix_os: f64,
-    climate_of_silence: f64,
-    corr_ps_climate: f64,
-    corr_as_climate: f64,
-    corr_qs_climate: f64,
-    corr_os_climate: f64,
-    kl_divergence_to_knoll: f64,
 }
 
 // --------------------------------------------------------------------------- //
@@ -223,13 +212,30 @@ fn motive_prior_from_args(as_: f64, qs: f64, ps: f64, os: f64) -> MotivePrior {
     }
 }
 
-fn extract_corr(result: &SimulationResult, motive: &str, correlate: &str) -> f64 {
-    result
-        .correlation_rows
-        .iter()
-        .find(|r| r.motive == motive && r.correlate == correlate)
-        .map(|r| r.pearson_r)
-        .unwrap_or(0.0)
+/// LLM クライアントを 1 本組む．
+///
+/// rule モードは LLM 層に触れないので `None`．`run.json` の `llm` ブロックに書く
+/// モデル名と endpoint は，実際に応答するバックエンドから採らないと意味を持たない
+/// ので，組み立ては `Run::start` より前に置く．
+fn build_client(cfg: &Config) -> Option<SilenceClient> {
+    cfg.decision_mode.is_llm().then(|| {
+        build_live_client(&cfg.llm).unwrap_or_else(|e| panic!("LLM クライアント構築に失敗: {e}"))
+    })
+}
+
+/// LLM キャッシュの置き場を用意する (LLM モードのみ)．
+fn ensure_cache_dir(cfg: &Config) {
+    if !cfg.decision_mode.is_llm() {
+        return;
+    }
+    if let Some(parent) = cfg
+        .llm
+        .cache_path
+        .as_deref()
+        .and_then(|path| Path::new(path).parent())
+    {
+        let _ = fs::create_dir_all(parent);
+    }
 }
 
 fn cfg_from_run_args(args: &RunArgs) -> Config {
@@ -266,7 +272,6 @@ fn cfg_from_run_args(args: &RunArgs) -> Config {
             seed: args.llm_seed,
             cache_path: Some(args.llm_cache_path.clone()),
         },
-        output_dir: args.output_dir.clone(),
     }
 }
 
@@ -275,17 +280,43 @@ fn cfg_from_run_args(args: &RunArgs) -> Config {
 // --------------------------------------------------------------------------- //
 
 fn cmd_run(args: RunArgs) {
-    let timestamp = timestamp();
-    let output_dir = format!("{}/{}", args.output_dir, timestamp);
-    ensure_output_dir(&output_dir);
+    let base_cfg = cfg_from_run_args(&args);
+    let runs = base_cfg.runs.max(1);
+    ensure_cache_dir(&base_cfg);
 
-    let mut base_cfg = cfg_from_run_args(&args);
-    base_cfg.output_dir = output_dir.clone();
-    if base_cfg.decision_mode.is_llm() {
-        if let Some(parent) = Path::new(&args.llm_cache_path).parent() {
-            let _ = fs::create_dir_all(parent);
-        }
+    // 記録するのは最後の 1 本．`--runs N` は同じ条件を N 本回して最後の結果だけを
+    // 残す (CLI のヘルプどおり) ので，実際に世界を支配したのは
+    // `derive_seed(seed, [N-1])` である．`master_seed` にはその派生シードを書く．
+    // CLI で与えた根のシードは `/parameters.seed` にあり，seed_pointers 経由で
+    // execution_hash に残る．
+    let recorded_seed = derive_seed(base_cfg.seed, &[(runs - 1) as u64]);
+
+    // クライアントは run を開始する前に組む (`llm` ブロックのため)．最初の 1 本で
+    // そのまま使い，2 本目以降は旧実装と同じく 1 本ごとに組み直す．
+    let mut pending = build_client(&base_cfg);
+    let llm = pending.as_ref().map(|c| {
+        record::llm_block(
+            c.inner().model(),
+            c.inner().endpoint(),
+            base_cfg.llm.temperature,
+        )
+    });
+
+    let parameters = base_cfg.to_run_config_json();
+    let mut options = RunOptions::new(EXPERIMENT, "run")
+        .repo_id(REPO_ID)
+        .domain(DOMAIN)
+        .results_root(&args.output_dir)
+        .parameters(&parameters)
+        .expect("runvault: parameters の組み立てに失敗")
+        .seed_pointers(["/seed"])
+        .master_seed(recorded_seed)
+        .replicate_index((runs - 1) as u64)
+        .replication(record::replication());
+    if let Some(llm) = llm {
+        options = options.llm(llm);
     }
+    let mut rv = Run::start(options).expect("runvault: run の開始に失敗");
 
     println!("=== Knoll & van Dick (2013) — Four-form silence ===");
     println!(
@@ -309,24 +340,18 @@ fn cmd_run(args: RunArgs) {
         base_cfg.runs,
         base_cfg.seed,
     );
-    println!("output: {output_dir}");
+    println!("output: {}", rv.dir().display());
     println!("----------------------------------------------------------------------");
 
-    // config.json
-    {
-        let path = format!("{output_dir}/config.json");
-        write_json(&base_cfg.to_run_config_json(), &path).expect("failed to write config.json");
-    }
-
     let mut last_result: Option<SimulationResult> = None;
-    let runs = base_cfg.runs.max(1);
     for run_idx in 0..runs {
         let seed = derive_seed(base_cfg.seed, &[run_idx as u64]);
         let cfg = Config {
             seed,
             ..base_cfg.clone()
         };
-        let result = run(&cfg).unwrap_or_else(|e| panic!("run failed: {e}"));
+        let client = pending.take().or_else(|| build_client(&cfg));
+        let result = run_with_client(&cfg, client).unwrap_or_else(|e| panic!("run failed: {e}"));
         let final_row = result.metrics_rows.last();
         println!(
             "[{}/{}] seed={} silence_rate={:.3} motive_mix=({:.2}/{:.2}/{:.2}/{:.2}) C={:.3} KL={:.3}",
@@ -345,12 +370,7 @@ fn cmd_run(args: RunArgs) {
     }
 
     let result = last_result.expect("at least one run");
-    save_metrics(&result, &output_dir);
-    save_agents(&result, &output_dir);
-    save_correlations(&result, &output_dir);
-    save_run_metadata(&result, &base_cfg, &output_dir);
-
-    let _ = refresh_latest_symlink(&args.output_dir, &timestamp);
+    record::log_simulation(&mut rv, &result);
 
     println!("----------------------------------------------------------------------");
     println!(
@@ -360,11 +380,11 @@ fn cmd_run(args: RunArgs) {
         result.metadata.cache_hit_rate() * 100.0,
         result.llm_model,
     );
-    println!("metrics      → {output_dir}/metrics.csv");
-    println!("agents       → {output_dir}/agents.csv");
-    println!("correlations → {output_dir}/correlations.csv");
-    println!("metadata     → {output_dir}/run_metadata.json");
-    println!("config       → {output_dir}/config.json");
+
+    let dir = rv.finish().expect("runvault: run の完了に失敗");
+    println!("指標         → {}/metrics.csv", dir.display());
+    println!("従業員       → {}/events.jsonl", dir.display());
+    println!("設定         → {}/config.json", dir.display());
 }
 
 // --------------------------------------------------------------------------- //
@@ -373,10 +393,6 @@ fn cmd_run(args: RunArgs) {
 
 fn cmd_sweep(args: SweepArgs) {
     let decision_mode = parse_decision_mode(&args.decision_mode).unwrap_or_else(|e| panic!("{e}"));
-    let timestamp = timestamp();
-    let dir_name = format!("{timestamp}_sweep");
-    let sweep_dir = format!("{}/{}", args.output_dir, dir_name);
-    fs::create_dir_all(&sweep_dir).expect("failed to create sweep dir");
 
     let psafety_vals = parse_f64_list(&args.beta_psafety_values);
     let fear_vals = parse_f64_list(&args.beta_fear_values);
@@ -389,6 +405,42 @@ fn cmd_sweep(args: SweepArgs) {
 
     let n_cells = psafety_vals.len() * fear_vals.len() * rho_ps_vals.len() * decoupling_vals.len();
     let n_total = n_cells * args.runs;
+
+    // 親 run: 格子の定義そのものを parameters に持つ．個別セルの指標は書かない．
+    // 親は単一の master_seed を持たない (セルごとの子が派生シードをそれぞれ持つ)．
+    // base seed は /parameters.seed と seed_pointers 経由で execution_hash に残る．
+    // sweep_id は runvault が親の run_slug で埋める．
+    let sweep_parameters = SweepConfigJson {
+        decision_mode: decision_mode.label().to_string(),
+        n_teams: args.n_teams,
+        team_size: args.team_size,
+        beta_psafety_values: psafety_vals.clone(),
+        beta_fear_values: fear_vals.clone(),
+        beta_rho_ps_values: rho_ps_vals.clone(),
+        sweep_decoupling: args.sweep_decoupling,
+        runs: args.runs,
+        t_max: args.t_max,
+        seed: args.seed,
+    };
+    let parent = Run::start(
+        RunOptions::new(EXPERIMENT, "sweep")
+            .repo_id(REPO_ID)
+            .domain(DOMAIN)
+            .results_root(&args.output_dir)
+            .parameters(&sweep_parameters)
+            .expect("runvault: sweep の parameters の組み立てに失敗")
+            .seed_pointers(["/seed"])
+            .sweep_parent()
+            .replication(record::replication()),
+    )
+    .expect("runvault: sweep 親 run の開始に失敗");
+
+    let sweep_id = parent
+        .sweep_id()
+        .expect("runvault: sweep 親に sweep_id がありません")
+        .to_string();
+    let parent_run_uid = parent.run_uid().to_string();
+
     println!("=== knoll-sweep ===");
     println!(
         "decision_mode: {} | β_ψ={:?} β_f={:?} β_ρ^PS={:?} | sweep_decoupling={} | runs/cell={} | total {} runs",
@@ -400,29 +452,9 @@ fn cmd_sweep(args: SweepArgs) {
         args.runs,
         n_total,
     );
-    println!("output: {sweep_dir}");
+    println!("output: {}", parent.dir().display());
     println!("------------------------------------------------------------");
 
-    // sweep_config.json
-    {
-        let config_json = serde_json::json!({
-            "command": "sweep",
-            "decision_mode": decision_mode.label(),
-            "n_teams": args.n_teams,
-            "team_size": args.team_size,
-            "beta_psafety_values": psafety_vals,
-            "beta_fear_values": fear_vals,
-            "beta_rho_ps_values": rho_ps_vals,
-            "sweep_decoupling": args.sweep_decoupling,
-            "runs": args.runs,
-            "t_max": args.t_max,
-            "seed": args.seed,
-        });
-        let path = format!("{sweep_dir}/sweep_config.json");
-        write_json(&config_json, &path).expect("failed to write sweep_config.json");
-    }
-
-    let mut rows: Vec<SweepRow> = Vec::with_capacity(n_total);
     let mut idx = 0usize;
     for &bp in &psafety_vals {
         for &bf in &fear_vals {
@@ -456,32 +488,48 @@ fn cmd_sweep(args: SweepArgs) {
                             seed,
                             ..Config::default()
                         };
-                        let result = run(&cfg).unwrap_or_else(|e| panic!("sweep run failed: {e}"));
+                        ensure_cache_dir(&cfg);
+                        let client = build_client(&cfg);
+                        let llm = client.as_ref().map(|c| {
+                            record::llm_block(
+                                c.inner().model(),
+                                c.inner().endpoint(),
+                                cfg.llm.temperature,
+                            )
+                        });
+
+                        // 子は «そのセルの run» そのもの．master_seed は base から
+                        // 派生した実際に使われるシードで，同一セルの繰り返しは
+                        // replicate_index で分ける．parameters は手で回した `run` と
+                        // 同じ形なので，同じ条件なら config_hash が一致する．
+                        let parameters = cfg.to_run_config_json();
+                        let mut options = RunOptions::new(EXPERIMENT, "run")
+                            .repo_id(REPO_ID)
+                            .domain(DOMAIN)
+                            .results_root(&args.output_dir)
+                            .parameters(&parameters)
+                            .expect("runvault: 子 run の parameters の組み立てに失敗")
+                            .seed_pointers(["/seed"])
+                            .master_seed(seed)
+                            .replicate_index(run_idx as u64)
+                            .lineage(Lineage {
+                                sweep_id: Some(sweep_id.clone()),
+                                parent_run_uid: Some(parent_run_uid.clone()),
+                                ..Default::default()
+                            })
+                            .replication(record::replication());
+                        if let Some(llm) = llm {
+                            options = options.llm(llm);
+                        }
+                        let mut child = Run::start(options).expect("runvault: 子 run の開始に失敗");
+
+                        let result = run_with_client(&cfg, client)
+                            .unwrap_or_else(|e| panic!("sweep run failed: {e}"));
+                        record::log_simulation(&mut child, &result);
                         let last = result
                             .metrics_rows
                             .last()
                             .expect("metrics_rows must not be empty");
-                        rows.push(SweepRow {
-                            decision_mode: decision_mode.label().to_string(),
-                            beta_psafety: bp,
-                            beta_fear: bf,
-                            beta_rho_ps: brho_ps,
-                            prosocial_climate_decoupling: dec,
-                            run: run_idx,
-                            seed,
-                            final_round: result.final_round,
-                            silence_rate: last.silence_rate,
-                            motive_mix_as: last.motive_mix_as,
-                            motive_mix_qs: last.motive_mix_qs,
-                            motive_mix_ps: last.motive_mix_ps,
-                            motive_mix_os: last.motive_mix_os,
-                            climate_of_silence: last.climate_of_silence,
-                            corr_ps_climate: extract_corr(&result, "PS", "climate_of_silence"),
-                            corr_as_climate: extract_corr(&result, "AS", "climate_of_silence"),
-                            corr_qs_climate: extract_corr(&result, "QS", "climate_of_silence"),
-                            corr_os_climate: extract_corr(&result, "OS", "climate_of_silence"),
-                            kl_divergence_to_knoll: last.kl_divergence_to_knoll,
-                        });
                         if idx.is_multiple_of(10) || idx == n_total {
                             println!(
                                 "[{}/{}] β_ψ={:.2} β_f={:.2} β_ρ^PS={:.2} dec={} run={} silence={:.3}",
@@ -495,28 +543,27 @@ fn cmd_sweep(args: SweepArgs) {
                                 last.silence_rate
                             );
                         }
+                        child.finish().expect("runvault: 子 run の完了に失敗");
                     }
                 }
             }
         }
     }
 
-    // sweep_summary.csv
-    let path = format!("{sweep_dir}/sweep_summary.csv");
-    write_csv(&rows, &path).expect("failed to write sweep_summary.csv");
-
-    let _ = refresh_latest_symlink(&args.output_dir, &dir_name);
+    let dir = parent
+        .finish()
+        .expect("runvault: sweep 親 run の完了に失敗");
     println!("------------------------------------------------------------");
     println!("sweep done.");
-    println!("summary → {sweep_dir}/sweep_summary.csv");
-    println!("config  → {sweep_dir}/sweep_config.json");
+    println!("親 run → {}", dir.display());
+    println!("子 run は lineage.parent_run_uid で親を指す．");
 }
 
 // --------------------------------------------------------------------------- //
 // reproduce (Phase B3 / Phase X stub)
 // --------------------------------------------------------------------------- //
 
-fn cmd_reproduce(_args: ReproduceArgs) {
+fn cmd_reproduce() {
     println!("`reproduce` is a Phase B3 / Phase X feature (12-item reflexive self-rating");
     println!("emission + population-CFA verification + 3-way Track A vs Track B vs paper");
     println!("integration). It is intentionally NOT implemented in this scaffold.");
@@ -527,7 +574,7 @@ fn cmd_reproduce(_args: ReproduceArgs) {
     println!("  knoll sweep                        # β group × prosocial_decoupling × seeds");
     println!();
     println!("See `.claude/CLAUDE.md` for the Phase Status matrix and the design doc");
-    println!("(Obsidian 80-再現実装) for the Phase B3 / Phase X plan.");
+    println!("(Obsidian 80-再現実験) for the Phase B3 / Phase X plan.");
 }
 
 // --------------------------------------------------------------------------- //
@@ -542,6 +589,6 @@ fn main() {
     match cli.command {
         Commands::Run(args) => cmd_run(args),
         Commands::Sweep(args) => cmd_sweep(args),
-        Commands::Reproduce(args) => cmd_reproduce(args),
+        Commands::Reproduce => cmd_reproduce(),
     }
 }

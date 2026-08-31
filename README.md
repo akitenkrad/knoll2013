@@ -16,7 +16,7 @@ LLM output is **outside** socsim's bit-reproducibility, so the design splits int
 - **Deterministic socsim core** — employee initialisation, Watts–Strogatz network generation, scheduling, the 8 non-decision mechanisms, the rule-mode `voice_decision_rule`. Given a seed this reproduces bit-for-bit. The `--decision-mode rule` path lives entirely here and makes **zero LLM calls**.
 - **Non-deterministic LLM layer** — `voice_decision` only. Pseudo-determinised by `socsim-llm`'s `CachingClient` (a `hash(prompt+model)` → response cache), `temperature=0` and a fixed `(agent_id, t)`-derived seed. Provider order is **Ollama first → OpenAI fallback** via `socsim-llm`'s `FallbackClient`.
 
-The cache — not the model — is the reproducibility mechanism: a warm cache replays identical responses. Each run writes `run_metadata.json` recording decision mode / model / endpoint / temperature / seed / cache-hit rate.
+The cache — not the model — is the reproducibility mechanism: a warm cache replays identical responses. Each run records the model, endpoint and temperature in `run.json`'s `llm` block, and the call / cache-hit counts as run-scope metrics.
 
 ## Install & Quick start
 
@@ -51,7 +51,7 @@ cargo run --release -- sweep \
 uv sync
 uv run knoll-tools visualize                          # motive_mix + KL + motive×climate bar
 uv run knoll-tools visualize-sweep                    # β heatmap + PS-decoupling response curve
-uv run knoll-tools show-experiment-settings           # config / sweep_config / run_metadata
+uv run knoll-tools show-experiment-settings           # a run directory's config + LLM provenance
 
 # === Track A synthetic-data smoke (no real data required) ===
 uv run knoll-tools survey-loader --synthesize-n 200 --sample synth
@@ -67,7 +67,7 @@ uv run knoll-tools cfa-competing-models  --sample synth --models M1,M2,M3,M3b,M4
 ```
 knoll2013/
 ├── simulation/                       # Track B (Rust socsim ABM)
-│   ├── Cargo.toml                    # socsim-{core,engine,net,mechanisms,metrics,llm,results} git deps
+│   ├── Cargo.toml                    # socsim-{core,engine,net,mechanisms,metrics,llm} + runvault git deps
 │   ├── src/
 │   │   ├── lib.rs / main.rs          # CLI: run / sweep / reproduce
 │   │   ├── config.rs                 # Config / DecisionMode / BetaGroup / MotivePrior / NetworkKind
@@ -75,11 +75,12 @@ knoll2013/
 │   │   ├── mechanisms.rs             # 9 mechanisms × 6 phases; rule vs LLM decision (mutually exclusive)
 │   │   ├── prompts.rs                # LLM persona templates + decision JSON parser
 │   │   ├── llm.rs                    # socsim-llm shared-harness re-export shim
-│   │   ├── simulation.rs             # init_world + run_with_client + CSV/JSON writers
+│   │   ├── simulation.rs             # init_world + run_with_client (no file writing)
+│   │   ├── record.rs                 # runvault: paper metadata, metrics, agent events
 │   │   └── metrics.rs                # silence_rate / motive_mix / climate / KL / Pearson r
 │   └── tests/integration_test.rs     # rule + scripted-LLM smoke tests
 ├── tools/                            # Python knoll-tools (Track A + Track B)
-│   └── src/knoll_tools/{cli,visualize,visualize_sweep,show_experiment_settings,
+│   └── src/knoll_tools/{cli,visualize,visualize_sweep,show_experiment_settings,sweep_summary,
 │                        survey_loader,descriptive_stats,efa_4factor,cfa_competing_models,
 │                        reliability_analysis,nomological_network,discriminant_validity,
 │                        robustness_checks,multigroup_cfa,cfa_analysis,reproduce_paper}.py
@@ -89,15 +90,16 @@ knoll2013/
 │   └── irb_protocol.md               # IRB submission protocol
 ├── docs/                             # bilingual: architecture, cli, usecases, visualization, reproduction
 ├── data_external/                    # raw survey CSVs (gitignored — never commit)
-└── results/                          # runtime outputs (gitignored)
-    ├── latest -> {YYYYMMDD_HHMMSS}/
-    └── {YYYYMMDD_HHMMSS}/
-        ├── config.json | sweep_config.json
-        ├── metrics.csv               # t, silence_rate, motive_mix_{AS,QS,PS,OS}, climate, KL, …
-        ├── agents.csv                # final-step per-agent state
-        ├── correlations.csv          # 4 motive × 6 correlate final-step Pearson r
-        ├── run_metadata.json         # LLM provenance + cache-hit rate
-        └── sweep_summary.csv
+└── results/                          # runvault run directories (gitignored)
+    └── knoll/
+        ├── run_{stamp}_{config}_{exec}/    # one subcommand invocation = one run
+        │   ├── run.json              # identity, seeds, LLM block, paper + targets
+        │   ├── config.json           # envelope; the conditions live under `parameters`
+        │   ├── metrics.csv           # long: (name, step, step_unit, scope, value)
+        │   ├── events.jsonl          # x.knoll2013.agent — final per-agent state
+        │   └── status.json           # state + duration_sec
+        ├── sweep_{stamp}_…/          # sweep parent; children point at it via lineage
+        └── figures/{run_slug}/       # drawn after the run, so outside it
 ```
 
 ## Documentation

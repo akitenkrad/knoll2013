@@ -16,7 +16,7 @@ LLM 出力は socsim の bit 再現性の **外側** にあるため，設計を
 - **決定論的 socsim コア** — 従業員初期化・Watts–Strogatz ネット生成・スケジュール・8 個の非決定 mechanism・rule モードの `voice_decision_rule`．シード固定で bit 単位で再現．`--decision-mode rule` 経路は完全にこの層に閉じ，LLM 呼び出しは **0 回**．
 - **非決定的 LLM レイヤ** — `voice_decision` のみ．`socsim-llm` の `CachingClient`（`hash(prompt+model)` → 応答キャッシュ）・`temperature=0`・`(agent_id, t)` 由来の固定 seed で擬似決定論化．プロバイダ順序は `socsim-llm` の `FallbackClient` による **Ollama 第一 → OpenAI フォールバック**．
 
-再現性の本体はモデルではなく **キャッシュ** である．各実行は `run_metadata.json` に decision mode / model / endpoint / temperature / seed / cache-hit 率を記録する．
+再現性の本体はモデルではなく **キャッシュ** である．各実行はモデル・endpoint・温度を `run.json` の `llm` ブロックに，呼び出し数と cache-hit 数を run スコープの指標として記録する．
 
 ## インストールとクイックスタート
 
@@ -51,7 +51,7 @@ cargo run --release -- sweep \
 uv sync
 uv run knoll-tools visualize                          # 動機別時系列 + KL + 動機×風土棒
 uv run knoll-tools visualize-sweep                    # β ヒートマップ + PS-decoupling 応答曲線
-uv run knoll-tools show-experiment-settings           # config / sweep_config / run_metadata
+uv run knoll-tools show-experiment-settings           # run ディレクトリの設定 + LLM 由来情報
 
 # === Track A 合成データスモーク（実データ不要） ===
 uv run knoll-tools survey-loader --synthesize-n 200 --sample synth
@@ -67,7 +67,7 @@ uv run knoll-tools cfa-competing-models  --sample synth --models M1,M2,M3,M3b,M4
 ```
 knoll2013/
 ├── simulation/                       # Track B (Rust socsim ABM)
-│   ├── Cargo.toml                    # socsim-{core,engine,net,mechanisms,metrics,llm,results} git 依存
+│   ├── Cargo.toml                    # socsim-{core,engine,net,mechanisms,metrics,llm} + runvault git 依存
 │   ├── src/
 │   │   ├── lib.rs / main.rs          # CLI: run / sweep / reproduce
 │   │   ├── config.rs                 # Config / DecisionMode / BetaGroup / MotivePrior / NetworkKind
@@ -75,18 +75,28 @@ knoll2013/
 │   │   ├── mechanisms.rs             # 9 mechanisms × 6 phases；rule vs LLM 決定（排他）
 │   │   ├── prompts.rs                # LLM persona テンプレート + 決定 JSON パーサ
 │   │   ├── llm.rs                    # socsim-llm 共有ハーネス re-export shim
-│   │   ├── simulation.rs             # init_world + run_with_client + CSV/JSON ライタ
+│   │   ├── simulation.rs             # init_world + run_with_client（ファイルは書かない）
+│   │   ├── record.rs                 # runvault への記録（論文メタデータ・指標・agent イベント）
 │   │   └── metrics.rs                # silence_rate / motive_mix / climate / KL / Pearson r
 │   └── tests/integration_test.rs     # rule + scripted-LLM スモークテスト
 ├── tools/                            # Python knoll-tools (Track A + Track B)
-│   └── src/knoll_tools/{cli,visualize,visualize_sweep,show_experiment_settings,
+│   └── src/knoll_tools/{cli,visualize,visualize_sweep,show_experiment_settings,sweep_summary,
 │                        survey_loader,descriptive_stats,efa_4factor,cfa_competing_models,
 │                        reliability_analysis,nomological_network,discriminant_validity,
 │                        robustness_checks,multigroup_cfa,cfa_analysis,reproduce_paper}.py
 ├── survey/                           # Track A 調査票（12 項目 EN/JA + 翻訳ログ + IRB プロトコル）
 ├── docs/                             # bilingual: architecture, cli, usecases, visualization, reproduction
 ├── data_external/                    # 生調査 CSV（gitignore；絶対に commit しない）
-└── results/                          # 実行時生成（gitignore）
+└── results/                          # runvault の run ディレクトリ（gitignore）
+    └── knoll/
+        ├── run_{stamp}_{config}_{exec}/    # サブコマンド 1 回 = run 1 本
+        │   ├── run.json              # 同一性・シード・LLM ブロック・対象論文
+        │   ├── config.json           # 封筒．条件は `parameters` の下
+        │   ├── metrics.csv           # long 形式 (name, step, step_unit, scope, value)
+        │   ├── events.jsonl          # x.knoll2013.agent — 最終ステップの従業員状態
+        │   └── status.json           # 状態 + duration_sec
+        ├── sweep_{stamp}_…/          # sweep 親．子は lineage で親を指す
+        └── figures/{run_slug}/       # run の後に作る図なので run の外
 ```
 
 ## ドキュメント

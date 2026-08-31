@@ -32,19 +32,23 @@ Run one configuration (rule or LLM mode), one or more times (`--runs`).
 | `--llm-temperature <f32>` | `0.0` | LLM generation temperature. |
 | `--llm-seed <u64>` | `0` | LLM seed offset; per-(agent, t) seed is derived. |
 | `--llm-cache-path <path>` | `.llm_cache/cache.json` | Prompt→response cache (LLM mode only). |
-| `--output-dir <path>` | `results` | Output base directory. |
+| `--output-dir <path>` | `results` | runvault results root; the run directory is named under `<root>/knoll/`. |
 
-Outputs (under `results/<timestamp>/`):
+One invocation is one [runvault](https://github.com/akitenkrad/rs-runvault) run. runvault creates and names the directory, so there is no timestamped folder and no `latest` symlink to maintain.
 
-- `config.json` — verbatim configuration.
-- `metrics.csv` — one row per step: `t, silence_rate, motive_mix_{AS,QS,PS,OS}, subscale_proxy_*, climate_of_silence, issue_salience, kl_divergence_to_knoll`.
-- `agents.csv` — final-step per-agent state.
-- `correlations.csv` — 4 motive × 6 correlate Pearson r matrix (final step).
-- `run_metadata.json` — LLM provenance (model / endpoint / temp / seed / cache-hit rate).
+Outputs (under `results/knoll/run_{stamp}_{config}_{exec}/`):
+
+- `run.json` — identity, `rng` (the `master_seed` that actually governed the recorded execution, and its `replicate_index`), the `llm` block in LLM mode, and the paper + targets.
+- `config.json` — the envelope; the conditions are under `parameters`.
+- `metrics.csv` — long form, `(name, step, step_unit, scope, value)`:
+  - per step (`step_unit=step`, `scope=run`): `silence_rate`, `motive_mix_{as,qs,ps,os}`, `subscale_proxy_{as,qs,ps,os}`, `climate_of_silence`, `issue_salience`, `kl_divergence_to_knoll`.
+  - one value for the whole run (no step): `n_units`, `final_round`, `llm_calls`, `llm_cache_hits`, `llm_cache_hit_rate` (LLM mode only — a rate over zero calls is undefined, so the row is absent in rule mode), and the 24 `corr_{as,qs,ps,os}_{climate_of_silence,fear,psafety,ivt,harm,self_gain}` values.
+- `events.jsonl` — one `x.knoll2013.agent` line per employee: the final-step state. Per-employee values cannot live in `metrics.csv`, whose primary key is `(name, step, step_unit, scope)`; and `expression` / `motive` are labels, not numbers.
+- `status.json` — the run's state and `duration_sec` (wall-clock time is not a metric).
 
 ## `knoll sweep`
 
-Cartesian product over `β_ψ × β_f × β_ρ^{PS} × prosocial_decoupling × seeds`. Outputs `sweep_summary.csv` with one row per cell.
+Cartesian product over `β_ψ × β_f × β_ρ^{PS} × prosocial_decoupling × seeds`. Each cell × seed is a genuinely separate execution, so it becomes a **child run** under one sweep **parent**.
 
 | Flag | Default | Description |
 |------|---------|-------------|
@@ -56,12 +60,14 @@ Cartesian product over `β_ψ × β_f × β_ρ^{PS} × prosocial_decoupling × s
 | `--runs <usize>` | `5` | Runs (independent seeds) per cell. |
 | `--t-max <u64>` | `36` | Maximum simulation step per run. |
 | `--seed <u64>` | `42` | Base seed; per-cell seed derived. |
-| `--output-dir <path>` | `results` | Output base directory. |
+| `--output-dir <path>` | `results` | runvault results root. |
 
-Outputs (under `results/<timestamp>_sweep/`):
+Outputs:
 
-- `sweep_config.json` — verbatim sweep configuration.
-- `sweep_summary.csv` — one row per (cell × seed): `decision_mode, beta_*, prosocial_climate_decoupling, run, seed, final_round, silence_rate, motive_mix_*, climate_of_silence, corr_{AS,QS,PS,OS}_climate, kl_divergence_to_knoll`.
+- `results/knoll/sweep_{stamp}_…/` — the parent. Its `parameters` hold the grid itself. It has **no** `master_seed`: a sweep is driven by a list of seeds, not one, and the base seed reaches the execution hash through `/parameters.seed`.
+- `results/knoll/run_{stamp}_…/` — one child per (cell × seed), pointing at the parent through `lineage.parent_run_uid`. A child writes the same files as a hand-run `run`, with `parameters` of the same shape (so the same conditions give the same `config_hash`), `master_seed` = the derived cell seed and `rng.replicate_index` = which repeat of the cell it is.
+
+There is no `sweep_summary.csv`: every column it had is in the children (conditions in `parameters`, seeds in `run.json`, the final-step values and the correlations in `metrics.csv`). `knoll-tools visualize-sweep` rebuilds the table from them.
 
 ## `knoll reproduce`
 

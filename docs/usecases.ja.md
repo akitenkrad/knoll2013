@@ -41,7 +41,7 @@
 - LLM ペルソナが β 制約なしでも質的な動機符号パターンを再現するかを検証．
 - 同一 seed で LLM vs rule を比較し，LLM 層の寄与を切り分け．
 
-**Mode 3: sweep**: デカルト積 sweep が `sweep_summary.csv` を出力．`visualize-sweep` がそれを応答曲線とヒートマップに変換（PS-風土相関 vs `β_ρ^{PS}`，β_ψ × β_f の動機 mix ヒートマップ，decoupling on/off での PS-風土 r 箱ひげ図）．
+**Mode 3: sweep**: デカルト積 sweep は sweep 親 1 本 +（セル × seed）ごとの子 run を出力する．`visualize-sweep` が子から表を組み直し，応答曲線とヒートマップに変換（PS-風土相関 vs `β_ρ^{PS}`，β_ψ × β_f の動機 mix ヒートマップ，decoupling on/off での PS-風土 r 箱ひげ図）．
 
 ## 三者比較統合
 

@@ -32,19 +32,23 @@
 | `--llm-temperature <f32>` | `0.0` | LLM 生成温度． |
 | `--llm-seed <u64>` | `0` | LLM seed オフセット；per-(agent, t) seed は派生． |
 | `--llm-cache-path <path>` | `.llm_cache/cache.json` | プロンプト→応答キャッシュ（LLM モードのみ）． |
-| `--output-dir <path>` | `results` | 出力ベースディレクトリ． |
+| `--output-dir <path>` | `results` | runvault の results ルート．run ディレクトリは `<root>/knoll/` の下に作られる． |
 
-出力（`results/<timestamp>/` 配下）:
+サブコマンド 1 回が [runvault](https://github.com/akitenkrad/rs-runvault) の run 1 本になる．ディレクトリの作成と命名は runvault が持つので，タイムスタンプ付きディレクトリも `latest` symlink も無い．
 
-- `config.json` — 実行構成．
-- `metrics.csv` — 1 ステップ 1 行: `t, silence_rate, motive_mix_{AS,QS,PS,OS}, subscale_proxy_*, climate_of_silence, issue_salience, kl_divergence_to_knoll`．
-- `agents.csv` — 最終ステップ agent 別状態．
-- `correlations.csv` — 4 動機 × 6 correlate の Pearson r 行列（最終ステップ）．
-- `run_metadata.json` — LLM 由来情報（model / endpoint / temp / seed / cache-hit 率）．
+出力（`results/knoll/run_{stamp}_{config}_{exec}/` 配下）:
+
+- `run.json` — 同一性，`rng`（記録された実行を実際に支配した `master_seed` と `replicate_index`），LLM モードなら `llm` ブロック，対象論文と targets．
+- `config.json` — 封筒．条件は `parameters` の下．
+- `metrics.csv` — long 形式 `(name, step, step_unit, scope, value)`:
+  - ステップごと（`step_unit=step`, `scope=run`）: `silence_rate`，`motive_mix_{as,qs,ps,os}`，`subscale_proxy_{as,qs,ps,os}`，`climate_of_silence`，`issue_salience`，`kl_divergence_to_knoll`．
+  - run 全体で 1 つの値（`step` を持たない）: `n_units`，`final_round`，`llm_calls`，`llm_cache_hits`，`llm_cache_hit_rate`（LLM モードのみ．呼び出し 0 本の率は定義できないので rule モードでは行そのものが無い），および 24 個の `corr_{as,qs,ps,os}_{climate_of_silence,fear,psafety,ivt,harm,self_gain}`．
+- `events.jsonl` — 従業員 1 人 1 行の `x.knoll2013.agent`（最終ステップの状態）．従業員ごとの値は `metrics.csv` には置けない（主キーが `(name, step, step_unit, scope)` なので全行が衝突する）．`expression` / `motive` はラベルであって数ではない．
+- `status.json` — run の状態と `duration_sec`（実行時間は指標にしない）．
 
 ## `knoll sweep`
 
-`β_ψ × β_f × β_ρ^{PS} × prosocial_decoupling × seeds` のデカルト積．`sweep_summary.csv` にセルごとの行を出力．
+`β_ψ × β_f × β_ρ^{PS} × prosocial_decoupling × seeds` のデカルト積．（セル × seed）はそれぞれ別々の実行なので，sweep **親** 1 本 + **子 run** として記録する．
 
 | Flag | 既定 | 説明 |
 |------|------|------|
@@ -56,12 +60,14 @@
 | `--runs <usize>` | `5` | セルあたり実行回数． |
 | `--t-max <u64>` | `36` | 1 実行あたり最大ステップ． |
 | `--seed <u64>` | `42` | ベース seed；セル別 seed は派生． |
-| `--output-dir <path>` | `results` | 出力ベースディレクトリ． |
+| `--output-dir <path>` | `results` | runvault の results ルート． |
 
-出力（`results/<timestamp>_sweep/` 配下）:
+出力:
 
-- `sweep_config.json` — sweep 構成．
-- `sweep_summary.csv` — `(セル × seed)` 1 行ずつ: `decision_mode, beta_*, prosocial_climate_decoupling, run, seed, final_round, silence_rate, motive_mix_*, climate_of_silence, corr_{AS,QS,PS,OS}_climate, kl_divergence_to_knoll`．
+- `results/knoll/sweep_{stamp}_…/` — 親．`parameters` に格子そのものを持つ．`master_seed` は**持たない**（掃引を駆動するのはシードの列であって 1 つのシードではない．ベースシードは `/parameters.seed` から execution_hash に入る）．
+- `results/knoll/run_{stamp}_…/` — （セル × seed）ごとの子．`lineage.parent_run_uid` で親を指す．子は手で回した `run` と同じファイルを同じ形の `parameters` で書く（同じ条件なら `config_hash` が一致する）．`master_seed` はそのセルの派生シード，`rng.replicate_index` はセル内の何本目か．
+
+`sweep_summary.csv` は無い．旧 CSV の列はすべて子が持っている（条件は `parameters`，シードは `run.json`，最終ステップの値と相関は `metrics.csv`）．`knoll-tools visualize-sweep` がそこから表を組み直す．
 
 ## `knoll reproduce`
 

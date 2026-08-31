@@ -33,7 +33,6 @@ fn small_rule_cfg() -> Config {
         runs: 1,
         seed: 1234,
         llm: LlmSettings::default(),
-        output_dir: "results".to_string(),
     }
 }
 

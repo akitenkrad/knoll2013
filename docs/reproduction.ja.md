@@ -13,10 +13,10 @@
 | 3 | Study 1 | CFA CFI (M1, 1 因子) | .53 | — | 同上 |
 | 4 | Study 1 | CFA CFI (M2, 無相関 4 因子) | .85 | — | 同上 |
 | 5 | Study 2 N=184 | Cronbach α (AS=.88 / QS=.89 / PS=.82 / OS=.80) | ≥ .80 | 下位尺度別 | Track A `reliability-analysis`（実データ・合成データのいずれでも） |
-| 6 | Study 2 Table 2 | corr(AS, climate) = .65 | ≥ .50 符号 | 符号 | `correlations.csv` の `AS × climate_of_silence` 行（最終ステップ） |
+| 6 | Study 2 Table 2 | corr(AS, climate) = .65 | ≥ .50 符号 | 符号 | run スコープ指標 `corr_as_climate_of_silence` |
 | 7 | Study 2 Table 2 | **corr(PS, climate) = .11 (n.s.)** | 95% CI が 0 を含む | CI が 0 を跨ぐ | `--prosocial-climate-decoupling` が β_ρ^{PS} = 0 を強制；`visualize-sweep` の PS-decoupling 応答曲線参照 |
-| 8 | Study 2 Table 2 | corr(QS, climate) ≈ .40 | ±.10 符号 | 符号 | `correlations.csv` の `QS × climate_of_silence` |
-| 9 | Study 2 Table 2 | corr(OS, climate) ≈ .35 | ±.10 符号 | 符号 | `correlations.csv` の `OS × climate_of_silence` |
+| 8 | Study 2 Table 2 | corr(QS, climate) ≈ .40 | ±.10 符号 | 符号 | run スコープ指標 `corr_qs_climate_of_silence` |
+| 9 | Study 2 Table 2 | corr(OS, climate) ≈ .35 | ±.10 符号 | 符号 | run スコープ指標 `corr_os_climate_of_silence` |
 
 風土相関の各行について，rule モード ABM は正しい符号方向の Pearson r を生成する．その大きさは Knoll の特定の点推定値に較正されているのではなく，選んだ β 群に依存する．
 

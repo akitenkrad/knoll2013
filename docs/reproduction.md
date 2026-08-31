@@ -13,10 +13,10 @@ This is the reproduction-target reference: each Knoll indicator, its paper value
 | 3 | Study 1 | CFA CFI (M1, 1-factor) | .53 | — | same |
 | 4 | Study 1 | CFA CFI (M2, uncorrelated 4-factor) | .85 | — | same |
 | 5 | Study 2 N=184 | Cronbach α (AS=.88 / QS=.89 / PS=.82 / OS=.80) | ≥ .80 | per-subscale | Track A `reliability-analysis` (real or synthetic data) |
-| 6 | Study 2 Table 2 | corr(AS, climate) = .65 | ≥ .50 sign | sign | `correlations.csv` row `AS × climate_of_silence` (final step) |
+| 6 | Study 2 Table 2 | corr(AS, climate) = .65 | ≥ .50 sign | sign | run-scope metric `corr_as_climate_of_silence` |
 | 7 | Study 2 Table 2 | **corr(PS, climate) = .11 (n.s.)** | 95% CI includes 0 | CI spans 0 | `--prosocial-climate-decoupling` forces β_ρ^{PS} = 0; see `visualize-sweep` PS-decoupling response curve |
-| 8 | Study 2 Table 2 | corr(QS, climate) ≈ .40 | ±.10 sign | sign | `correlations.csv` `QS × climate_of_silence` |
-| 9 | Study 2 Table 2 | corr(OS, climate) ≈ .35 | ±.10 sign | sign | `correlations.csv` `OS × climate_of_silence` |
+| 8 | Study 2 Table 2 | corr(QS, climate) ≈ .40 | ±.10 sign | sign | run-scope metric `corr_qs_climate_of_silence` |
+| 9 | Study 2 Table 2 | corr(OS, climate) ≈ .35 | ±.10 sign | sign | run-scope metric `corr_os_climate_of_silence` |
 
 For the climate-correlation rows, the rule-mode ABM produces a Pearson r in the correct sign direction; its magnitude depends on the chosen β group rather than being calibrated to Knoll's specific point value.
 
