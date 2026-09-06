@@ -21,7 +21,7 @@ use knoll_silence::config::{
 };
 use knoll_silence::llm::{build_live_client, SilenceClient};
 use knoll_silence::record::{self, DOMAIN, EXPERIMENT, REPO_ID};
-use knoll_silence::simulation::{run_with_client, SimulationResult};
+use knoll_silence::simulation::{run_with_client_observed, SimulationResult};
 
 use socsim_core::derive_seed;
 use socsim_llm::LlmClient;
@@ -343,6 +343,11 @@ fn cmd_run(args: RunArgs) {
     println!("output: {}", rv.dir().display());
     println!("----------------------------------------------------------------------");
 
+    // 進捗の 1 単位は 1 ステップ．費用がそこにあり，1 ステップは全従業員について
+    // 決定を出す — `--decision-mode llm` ではその 1 つ 1 つがモデル呼び出しになる．
+    // 試行を単位にすると，ライブの 1 本は 0/1 と出したきり終わりまで黙る．
+    // 反復はすべて同じ条件・同じ t_max なので重みではなく数える．
+    let mut stage = rv.stage("steps", runs * base_cfg.t_max as usize);
     let mut last_result: Option<SimulationResult> = None;
     for run_idx in 0..runs {
         let seed = derive_seed(base_cfg.seed, &[run_idx as u64]);
@@ -351,7 +356,8 @@ fn cmd_run(args: RunArgs) {
             ..base_cfg.clone()
         };
         let client = pending.take().or_else(|| build_client(&cfg));
-        let result = run_with_client(&cfg, client).unwrap_or_else(|e| panic!("run failed: {e}"));
+        let result = run_with_client_observed(&cfg, client, |_| stage.tick())
+            .unwrap_or_else(|e| panic!("run failed: {e}"));
         let final_row = result.metrics_rows.last();
         println!(
             "[{}/{}] seed={} silence_rate={:.3} motive_mix=({:.2}/{:.2}/{:.2}/{:.2}) C={:.3} KL={:.3}",
@@ -368,6 +374,9 @@ fn cmd_run(args: RunArgs) {
         );
         last_result = Some(result);
     }
+    // manifest.csv は finish() で封をされる．その後に 1 行足せば，manifest が
+    // 食い違うダイジェストを持つことになる．
+    stage.close();
 
     let result = last_result.expect("at least one run");
     record::log_simulation(&mut rv, &result);
@@ -455,6 +464,13 @@ fn cmd_sweep(args: SweepArgs) {
     println!("output: {}", parent.dir().display());
     println!("------------------------------------------------------------");
 
+    // グリッド全体で stage を 1 つ．セルごとに開け直すと小さな 100% が並ぶだけで，
+    // スイープ全体のどこにいるかは分からない．掃引するのは β 群の係数と
+    // prosocial_climate_decoupling で，どれも仕事の量を変えない (チーム数も t_max も
+    // 固定) ので，重みではなく数える．`--decision-mode` は sweep 全体で 1 つなので，
+    // 1 ステップの費用は stage の中で揃っている．
+    let mut stage = parent.stage("steps", n_total * args.t_max as usize);
+
     let mut idx = 0usize;
     for &bp in &psafety_vals {
         for &bf in &fear_vals {
@@ -523,7 +539,7 @@ fn cmd_sweep(args: SweepArgs) {
                         }
                         let mut child = Run::start(options).expect("runvault: 子 run の開始に失敗");
 
-                        let result = run_with_client(&cfg, client)
+                        let result = run_with_client_observed(&cfg, client, |_| stage.tick())
                             .unwrap_or_else(|e| panic!("sweep run failed: {e}"));
                         record::log_simulation(&mut child, &result);
                         let last = result
@@ -549,6 +565,8 @@ fn cmd_sweep(args: SweepArgs) {
             }
         }
     }
+
+    stage.close();
 
     let dir = parent
         .finish()
