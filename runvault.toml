@@ -1,3 +1,284 @@
-# Metric descriptions are not written yet (MYTASK-3382). Until they are,
-# runvault records undeclared metrics instead of refusing them.
-require_docs = false
+# 指標が何を測っているか (runvault の宣言．rs-runvault docs/metrics.ja.md)．
+#
+# 名前は `simulation/src/record.rs` と `simulation/src/metrics.rs` が記録するものと一致していなければならない．
+#
+# `direction` は «値が大きいほど良いか»．模型の状態や到達量は成績ではないので
+# `none` とし，再現精度やキャッシュ効率のように評価方向が定まる量だけ `up` /
+# `down` とする．
+# `corr_<motive>_<correlate>` は `_` 連結なので，4 × 6 の有限名を明示する．
+
+[metrics."silence_rate"]
+meaning   = "沈黙を選んだ従業員の割合"
+unit      = "ratio"
+direction = "none"
+range     = [0.0, 1.0]
+scope     = ["run"]
+
+[metrics."motive_mix_as"]
+meaning   = "沈黙者のうち黙従的動機 (AS) が占める割合"
+unit      = "ratio"
+direction = "none"
+range     = [0.0, 1.0]
+scope     = ["run"]
+
+[metrics."motive_mix_qs"]
+meaning   = "沈黙者のうち静観的動機 (QS) が占める割合"
+unit      = "ratio"
+direction = "none"
+range     = [0.0, 1.0]
+scope     = ["run"]
+
+[metrics."motive_mix_ps"]
+meaning   = "沈黙者のうち向社会的動機 (PS) が占める割合"
+unit      = "ratio"
+direction = "none"
+range     = [0.0, 1.0]
+scope     = ["run"]
+
+[metrics."motive_mix_os"]
+meaning   = "沈黙者のうち機会主義的動機 (OS) が占める割合"
+unit      = "ratio"
+direction = "none"
+range     = [0.0, 1.0]
+scope     = ["run"]
+
+[metrics."subscale_proxy_as"]
+meaning   = "黙従的沈黙の構成比を 1〜7 に写した下位尺度代理値"
+unit      = "score"
+direction = "none"
+range     = [1.0, 7.0]
+scope     = ["run"]
+
+[metrics."subscale_proxy_qs"]
+meaning   = "静観的沈黙の構成比を 1〜7 に写した下位尺度代理値"
+unit      = "score"
+direction = "none"
+range     = [1.0, 7.0]
+scope     = ["run"]
+
+[metrics."subscale_proxy_ps"]
+meaning   = "向社会的沈黙の構成比を 1〜7 に写した下位尺度代理値"
+unit      = "score"
+direction = "none"
+range     = [1.0, 7.0]
+scope     = ["run"]
+
+[metrics."subscale_proxy_os"]
+meaning   = "機会主義的沈黙の構成比を 1〜7 に写した下位尺度代理値"
+unit      = "score"
+direction = "none"
+range     = [1.0, 7.0]
+scope     = ["run"]
+
+[metrics."climate_of_silence"]
+meaning   = "私的懸念に反対しながら沈黙している従業員の割合"
+unit      = "ratio"
+direction = "none"
+range     = [0.0, 1.0]
+scope     = ["run"]
+
+[metrics."issue_salience"]
+meaning   = "従業員にとっての問題顕在性の平均"
+unit      = "ratio"
+direction = "none"
+range     = [0.0, 1.0]
+scope     = ["run"]
+
+[metrics."kl_divergence_to_knoll"]
+meaning   = "4 動機の構成比と Knoll et al. の参照構成比との KL ダイバージェンス"
+unit      = "nat"
+direction = "down"
+scope     = ["run"]
+
+[metrics."final_round"]
+meaning   = "シミュレーションが停止したラウンド数"
+unit      = "count"
+direction = "none"
+scope     = ["run"]
+
+[metrics."llm_calls"]
+meaning   = "この run が行った LLM の呼び出し回数"
+unit      = "count"
+direction = "none"
+scope     = ["run"]
+
+[metrics."llm_cache_hits"]
+meaning   = "そのうちキャッシュで済んだ回数"
+unit      = "count"
+direction = "none"
+scope     = ["run"]
+
+[metrics."llm_cache_hit_rate"]
+meaning   = "LLM 呼び出しのうちキャッシュで済んだ割合"
+unit      = "ratio"
+direction = "up"
+range     = [0.0, 1.0]
+scope     = ["run"]
+
+[metrics."corr_as_climate_of_silence"]
+meaning   = "黙従的動機 (AS)の個人指標と沈黙風土との Pearson 相関係数"
+unit      = "correlation"
+direction = "none"
+range     = [-1.0, 1.0]
+scope     = ["run"]
+
+[metrics."corr_as_fear"]
+meaning   = "黙従的動機 (AS)の個人指標と恐怖との Pearson 相関係数"
+unit      = "correlation"
+direction = "none"
+range     = [-1.0, 1.0]
+scope     = ["run"]
+
+[metrics."corr_as_psafety"]
+meaning   = "黙従的動機 (AS)の個人指標と心理的安全性との Pearson 相関係数"
+unit      = "correlation"
+direction = "none"
+range     = [-1.0, 1.0]
+scope     = ["run"]
+
+[metrics."corr_as_ivt"]
+meaning   = "黙従的動機 (AS)の個人指標と発言無益感との Pearson 相関係数"
+unit      = "correlation"
+direction = "none"
+range     = [-1.0, 1.0]
+scope     = ["run"]
+
+[metrics."corr_as_harm"]
+meaning   = "黙従的動機 (AS)の個人指標と他者を害する懸念との Pearson 相関係数"
+unit      = "correlation"
+direction = "none"
+range     = [-1.0, 1.0]
+scope     = ["run"]
+
+[metrics."corr_as_self_gain"]
+meaning   = "黙従的動機 (AS)の個人指標と自己利益との Pearson 相関係数"
+unit      = "correlation"
+direction = "none"
+range     = [-1.0, 1.0]
+scope     = ["run"]
+
+[metrics."corr_qs_climate_of_silence"]
+meaning   = "静観的動機 (QS)の個人指標と沈黙風土との Pearson 相関係数"
+unit      = "correlation"
+direction = "none"
+range     = [-1.0, 1.0]
+scope     = ["run"]
+
+[metrics."corr_qs_fear"]
+meaning   = "静観的動機 (QS)の個人指標と恐怖との Pearson 相関係数"
+unit      = "correlation"
+direction = "none"
+range     = [-1.0, 1.0]
+scope     = ["run"]
+
+[metrics."corr_qs_psafety"]
+meaning   = "静観的動機 (QS)の個人指標と心理的安全性との Pearson 相関係数"
+unit      = "correlation"
+direction = "none"
+range     = [-1.0, 1.0]
+scope     = ["run"]
+
+[metrics."corr_qs_ivt"]
+meaning   = "静観的動機 (QS)の個人指標と発言無益感との Pearson 相関係数"
+unit      = "correlation"
+direction = "none"
+range     = [-1.0, 1.0]
+scope     = ["run"]
+
+[metrics."corr_qs_harm"]
+meaning   = "静観的動機 (QS)の個人指標と他者を害する懸念との Pearson 相関係数"
+unit      = "correlation"
+direction = "none"
+range     = [-1.0, 1.0]
+scope     = ["run"]
+
+[metrics."corr_qs_self_gain"]
+meaning   = "静観的動機 (QS)の個人指標と自己利益との Pearson 相関係数"
+unit      = "correlation"
+direction = "none"
+range     = [-1.0, 1.0]
+scope     = ["run"]
+
+[metrics."corr_ps_climate_of_silence"]
+meaning   = "向社会的動機 (PS)の個人指標と沈黙風土との Pearson 相関係数"
+unit      = "correlation"
+direction = "none"
+range     = [-1.0, 1.0]
+scope     = ["run"]
+
+[metrics."corr_ps_fear"]
+meaning   = "向社会的動機 (PS)の個人指標と恐怖との Pearson 相関係数"
+unit      = "correlation"
+direction = "none"
+range     = [-1.0, 1.0]
+scope     = ["run"]
+
+[metrics."corr_ps_psafety"]
+meaning   = "向社会的動機 (PS)の個人指標と心理的安全性との Pearson 相関係数"
+unit      = "correlation"
+direction = "none"
+range     = [-1.0, 1.0]
+scope     = ["run"]
+
+[metrics."corr_ps_ivt"]
+meaning   = "向社会的動機 (PS)の個人指標と発言無益感との Pearson 相関係数"
+unit      = "correlation"
+direction = "none"
+range     = [-1.0, 1.0]
+scope     = ["run"]
+
+[metrics."corr_ps_harm"]
+meaning   = "向社会的動機 (PS)の個人指標と他者を害する懸念との Pearson 相関係数"
+unit      = "correlation"
+direction = "none"
+range     = [-1.0, 1.0]
+scope     = ["run"]
+
+[metrics."corr_ps_self_gain"]
+meaning   = "向社会的動機 (PS)の個人指標と自己利益との Pearson 相関係数"
+unit      = "correlation"
+direction = "none"
+range     = [-1.0, 1.0]
+scope     = ["run"]
+
+[metrics."corr_os_climate_of_silence"]
+meaning   = "機会主義的動機 (OS)の個人指標と沈黙風土との Pearson 相関係数"
+unit      = "correlation"
+direction = "none"
+range     = [-1.0, 1.0]
+scope     = ["run"]
+
+[metrics."corr_os_fear"]
+meaning   = "機会主義的動機 (OS)の個人指標と恐怖との Pearson 相関係数"
+unit      = "correlation"
+direction = "none"
+range     = [-1.0, 1.0]
+scope     = ["run"]
+
+[metrics."corr_os_psafety"]
+meaning   = "機会主義的動機 (OS)の個人指標と心理的安全性との Pearson 相関係数"
+unit      = "correlation"
+direction = "none"
+range     = [-1.0, 1.0]
+scope     = ["run"]
+
+[metrics."corr_os_ivt"]
+meaning   = "機会主義的動機 (OS)の個人指標と発言無益感との Pearson 相関係数"
+unit      = "correlation"
+direction = "none"
+range     = [-1.0, 1.0]
+scope     = ["run"]
+
+[metrics."corr_os_harm"]
+meaning   = "機会主義的動機 (OS)の個人指標と他者を害する懸念との Pearson 相関係数"
+unit      = "correlation"
+direction = "none"
+range     = [-1.0, 1.0]
+scope     = ["run"]
+
+[metrics."corr_os_self_gain"]
+meaning   = "機会主義的動機 (OS)の個人指標と自己利益との Pearson 相関係数"
+unit      = "correlation"
+direction = "none"
+range     = [-1.0, 1.0]
+scope     = ["run"]
