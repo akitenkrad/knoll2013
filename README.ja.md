@@ -62,6 +62,11 @@ uv run knoll-tools nomological-network   --sample synth --bootstrap 500
 uv run knoll-tools cfa-competing-models  --sample synth --models M1,M2,M3,M3b,M4
 ```
 
+
+## Scratch run
+
+開発中・デバッグ中・動作確認の実行には `--scratch` を付ける．run は `results/_scratch/` に作られ，同期されない．最新の scratch run は `runvault path --scratch` で取得できる．
+
 ## リポジトリ構成
 
 ```

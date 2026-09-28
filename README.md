@@ -62,6 +62,11 @@ uv run knoll-tools nomological-network   --sample synth --bootstrap 500
 uv run knoll-tools cfa-competing-models  --sample synth --models M1,M2,M3,M3b,M4
 ```
 
+
+## Scratch runs
+
+Use `--scratch` for development, debugging, and smoke-test runs. Scratch runs are created under `results/_scratch/`, are never synced to the vault, and the latest scratch run can be located with `runvault path --scratch`.
+
 ## Repository layout
 
 ```

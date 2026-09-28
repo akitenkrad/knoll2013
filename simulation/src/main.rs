@@ -38,6 +38,9 @@ use socsim_llm::LlmClient;
 struct Cli {
     #[command(subcommand)]
     command: Commands,
+    /// Development run: write it under results/_scratch/ so it is never synced to the vault.
+    #[arg(long, global = true)]
+    scratch: bool,
 
     /// Ollama 接続先 URL（指定時は環境変数 OLLAMA_HOST を上書きする）．
     #[arg(long, global = true)]
@@ -279,7 +282,7 @@ fn cfg_from_run_args(args: &RunArgs) -> Config {
 // run
 // --------------------------------------------------------------------------- //
 
-fn cmd_run(args: RunArgs) {
+fn cmd_run(args: RunArgs, scratch: bool) {
     let base_cfg = cfg_from_run_args(&args);
     let runs = base_cfg.runs.max(1);
     ensure_cache_dir(&base_cfg);
@@ -304,6 +307,7 @@ fn cmd_run(args: RunArgs) {
 
     let parameters = base_cfg.to_run_config_json();
     let mut options = RunOptions::new(EXPERIMENT, "run")
+        .scratch(scratch)
         .repo_id(REPO_ID)
         .domain(DOMAIN)
         .results_root(&args.output_dir)
@@ -400,7 +404,7 @@ fn cmd_run(args: RunArgs) {
 // sweep
 // --------------------------------------------------------------------------- //
 
-fn cmd_sweep(args: SweepArgs) {
+fn cmd_sweep(args: SweepArgs, scratch: bool) {
     let decision_mode = parse_decision_mode(&args.decision_mode).unwrap_or_else(|e| panic!("{e}"));
 
     let psafety_vals = parse_f64_list(&args.beta_psafety_values);
@@ -433,6 +437,7 @@ fn cmd_sweep(args: SweepArgs) {
     };
     let parent = Run::start(
         RunOptions::new(EXPERIMENT, "sweep")
+            .scratch(scratch)
             .repo_id(REPO_ID)
             .domain(DOMAIN)
             .results_root(&args.output_dir)
@@ -520,6 +525,7 @@ fn cmd_sweep(args: SweepArgs) {
                         // 同じ形なので，同じ条件なら config_hash が一致する．
                         let parameters = cfg.to_run_config_json();
                         let mut options = RunOptions::new(EXPERIMENT, "run")
+                            .scratch(scratch)
                             .repo_id(REPO_ID)
                             .domain(DOMAIN)
                             .results_root(&args.output_dir)
@@ -581,7 +587,7 @@ fn cmd_sweep(args: SweepArgs) {
 // reproduce (Phase B3 / Phase X stub)
 // --------------------------------------------------------------------------- //
 
-fn cmd_reproduce() {
+fn cmd_reproduce(_scratch: bool) {
     println!("`reproduce` is a Phase B3 / Phase X feature (12-item reflexive self-rating");
     println!("emission + population-CFA verification + 3-way Track A vs Track B vs paper");
     println!("integration). It is intentionally NOT implemented in this scaffold.");
@@ -601,12 +607,13 @@ fn cmd_reproduce() {
 
 fn main() {
     let cli = Cli::parse();
+    let scratch = cli.scratch;
     if let Some(host) = cli.ollama_host.as_deref() {
         std::env::set_var("OLLAMA_HOST", host);
     }
     match cli.command {
-        Commands::Run(args) => cmd_run(args),
-        Commands::Sweep(args) => cmd_sweep(args),
-        Commands::Reproduce => cmd_reproduce(),
+        Commands::Run(args) => cmd_run(args, scratch),
+        Commands::Sweep(args) => cmd_sweep(args, scratch),
+        Commands::Reproduce => cmd_reproduce(scratch),
     }
 }
